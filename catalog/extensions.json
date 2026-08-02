@@ -6,9 +6,14 @@
       "id": "GameGallery_8e77fe31-5e62-41e2-8fa2-64844cfd5b6b",
       "name": "Game Gallery",
       "category": "Enhancements",
-      "version": "1.0",
+      "version": "2.0.0",
       "ownership": "osiris-fork",
-      "distribution": "pending-source-and-license-audit"
+      "upstream": "https://github.com/darklinkpower/PlayniteExtensionsCollection",
+      "distribution": "private-prerelease-package-ready",
+      "releaseTag": "game-gallery-v2.0.0",
+      "asset": "GameGallery_2.0.0.pext",
+      "sha256": "8e468fc043686590a5369bcb4d7c74368580d1e34f8756dd01f2a82f32a04573",
+      "size": 385967
     },
     {
       "id": "playnite-howlongtobeat-plugin",

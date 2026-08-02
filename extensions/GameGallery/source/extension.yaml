@@ -1,0 +1,12 @@
+Id: GameGallery_8e77fe31-5e62-41e2-8fa2-64844cfd5b6b
+Name: Game Gallery
+Author: Numina Initiative (forked from darklinkpower)
+Version: 2.0.0
+Module: GameGallery.dll
+Type: GenericPlugin
+Icon: icon.png
+Links:
+    - Name: Original Project
+      Url: https://github.com/darklinkpower/PlayniteExtensionsCollection
+    - Name: Osiris Extensions
+      Url: https://github.com/numinainitiative/Osiris_Extensions
