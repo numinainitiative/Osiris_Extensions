@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "enabled": false,
+  "extensions": [
+    {
+      "id": "GameGallery_8e77fe31-5e62-41e2-8fa2-64844cfd5b6b",
+      "name": "Game Gallery",
+      "category": "Enhancements",
+      "version": "1.0",
+      "ownership": "osiris-fork",
+      "distribution": "pending-source-and-license-audit"
+    },
+    {
+      "id": "playnite-howlongtobeat-plugin",
+      "name": "HowLongToBeat",
+      "category": "Enhancements",
+      "version": "3.10.6",
+      "ownership": "third-party",
+      "upstream": "https://github.com/Lacro59/playnite-howlongtobeat-plugin",
+      "distribution": "upstream-only-pending-review"
+    },
+    {
+      "id": "SteamLibrary_cb91dfc9-b977-43bf-8e70-55f46e410fab",
+      "name": "Steam Library",
+      "category": "Libraries",
+      "version": "1.0",
+      "ownership": "provenance-pending",
+      "distribution": "pending-source-and-license-audit"
+    },
+    {
+      "id": "XboxLibrary_7e4fbb5e-2ae3-48d4-8ba0-6b30e7a4e287",
+      "name": "Xbox Library",
+      "category": "Libraries",
+      "version": "1.0",
+      "ownership": "provenance-pending",
+      "distribution": "pending-source-and-license-audit"
+    },
+    {
+      "id": "IGDBMetadata_000001db-dbd1-46c6-b5d0-b1ba559d10e4",
+      "name": "IGDB Metadata",
+      "category": "Metadata",
+      "version": "1.0",
+      "ownership": "provenance-pending",
+      "distribution": "pending-source-and-license-audit"
+    },
+    {
+      "id": "IgnMetadata_6024e3a9-de7e-4848-9101-7a2f818e7e47",
+      "name": "IGN Metadata",
+      "category": "Metadata",
+      "version": "1.0",
+      "ownership": "osiris-repackaged-fork",
+      "upstream": "https://github.com/Jeshibu/PlayniteExtensions",
+      "distribution": "pending-source-and-license-audit"
+    },
+    {
+      "id": "SteamGridDBMetadata_f9a763e1-1ccb-4d7d-b955-d59e708f71c1",
+      "name": "SteamGridDB Metadata",
+      "category": "Metadata",
+      "version": "1.0",
+      "ownership": "provenance-pending",
+      "distribution": "pending-source-and-license-audit"
+    },
+    {
+      "id": "UniversalSteamMetadata_f2db8fb1-4981-4dc4-b087-05c782215b72",
+      "name": "Universal Steam Metadata",
+      "category": "Metadata",
+      "version": "1.0",
+      "ownership": "provenance-pending",
+      "distribution": "pending-source-and-license-audit"
+    }
+  ]
+}

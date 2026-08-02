@@ -1,0 +1,19 @@
+# Build outputs and downloaded dependencies
+**/bin/
+**/obj/
+**/packages/
+artifacts/
+recovery/
+
+# Installed extension packages and private runtime data
+*.pext
+*.zip
+Data/
+ExtensionsData/
+*.log
+
+# User and IDE files
+.vs/
+.idea/
+*.user
+*.suo
