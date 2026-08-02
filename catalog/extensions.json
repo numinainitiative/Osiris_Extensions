@@ -9,8 +9,9 @@
       "version": "2.0.0",
       "ownership": "osiris-fork",
       "upstream": "https://github.com/darklinkpower/PlayniteExtensionsCollection",
-      "distribution": "private-prerelease-package-ready",
+      "distribution": "private-prerelease",
       "releaseTag": "game-gallery-v2.0.0",
+      "releaseUrl": "https://github.com/numinainitiative/Osiris_Extensions/releases/tag/game-gallery-v2.0.0",
       "asset": "GameGallery_2.0.0.pext",
       "sha256": "8e468fc043686590a5369bcb4d7c74368580d1e34f8756dd01f2a82f32a04573",
       "size": 385967
