@@ -74,9 +74,17 @@
                     Cursor="Hand"
                     Command="{Binding OpenScreenshotsViewCommand}"
                     Visibility="{Binding IsTrailerSelected, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=True}">
-                <Image Source="{Binding CurrentImageBitmap}"
-                       RenderOptions.BitmapScalingMode="Fant"
-                       Stretch="Uniform" />
+                <Grid>
+                    <!-- These names are the stable Osiris presentation contract. The
+                         theme replaces these fields with its cropped stage images. -->
+                    <Image x:Name="OldImage"
+                           Source="{Binding CurrentImageBitmap}"
+                           Visibility="Collapsed" />
+                    <Image x:Name="NewImage"
+                           Source="{Binding CurrentImageBitmap}"
+                           RenderOptions.BitmapScalingMode="Fant"
+                           Stretch="Uniform" />
+                </Grid>
             </Button>
             <MediaElement Source="{Binding CurrentTrailerUrl}"
                           LoadedBehavior="Play"

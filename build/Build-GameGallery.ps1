@@ -8,7 +8,7 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $sourceRoot = Join-Path $repoRoot "extensions\GameGallery\source"
 $projectPath = Join-Path $sourceRoot "GameGallery.csproj"
 $solutionPath = Join-Path $sourceRoot "SteamScreenshots.sln"
-$version = "2.0.0"
+$version = "2.0.1"
 $extensionId = "GameGallery_8e77fe31-5e62-41e2-8fa2-64844cfd5b6b"
 $artifactRoot = Join-Path $repoRoot "artifacts\GameGallery\$version"
 $stageRoot = Join-Path $artifactRoot $extensionId
@@ -49,6 +49,13 @@ foreach ($required in @(
 )) {
     if (-not $manifest.Contains($required)) {
         throw "The compiled extension manifest is missing '$required'."
+    }
+}
+
+$controlMarkup = Get-Content -LiteralPath (Join-Path $sourceRoot "ScreenshotsControl\SteamScreenshotsControl.xaml") -Raw
+foreach ($requiredName in @("OldImage", "NewImage", "ScreenshotsListBox")) {
+    if (-not $controlMarkup.Contains("x:Name=`"$requiredName`"")) {
+        throw "The Osiris Gallery presentation contract is missing '$requiredName'."
     }
 }
 
