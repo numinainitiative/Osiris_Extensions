@@ -29,9 +29,10 @@
       "id": "SteamLibrary_cb91dfc9-b977-43bf-8e70-55f46e410fab",
       "name": "Steam Library",
       "category": "Libraries",
-      "version": "1.0",
-      "ownership": "provenance-pending",
-      "distribution": "pending-source-and-license-audit"
+      "version": "1.0.1",
+      "ownership": "osiris-fork",
+      "upstream": "https://github.com/JosefNemec/PlayniteExtensions",
+      "distribution": "private-development"
     },
     {
       "id": "XboxLibrary_7e4fbb5e-2ae3-48d4-8ba0-6b30e7a4e287",

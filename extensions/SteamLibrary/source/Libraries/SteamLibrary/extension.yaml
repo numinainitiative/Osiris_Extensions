@@ -1,0 +1,7 @@
+Id: SteamLibrary_cb91dfc9-b977-43bf-8e70-55f46e410fab
+Name: Steam Library
+Author: Osiris
+Version: 1.0.1
+Module: SteamLibrary.dll
+Type: GameLibrary
+Icon: Resources\steamicon.png
