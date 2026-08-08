@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "enabled": false,
+  "enabled": true,
   "extensions": [
     {
       "id": "GameGallery_8e77fe31-5e62-41e2-8fa2-64844cfd5b6b",
@@ -79,7 +79,7 @@
       "category": "Metadata",
       "tags": ["Metadata"],
       "version": "1.0",
-      "distribution": "release-candidate",
+      "distribution": "public",
       "installFolder": "Metadata\\UniversalSteamMetadata_f2db8fb1-4981-4dc4-b087-05c782215b72",
       "releaseTag": "steam-metadata-v1.0",
       "packageUrl": "https://github.com/numinainitiative/Osiris_Extensions/releases/download/steam-metadata-v1.0/SteamMetadata_1.0.pext",
