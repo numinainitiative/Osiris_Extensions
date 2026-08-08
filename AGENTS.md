@@ -21,6 +21,15 @@ by Numina Initiative for Osiris.
   `Programming/Development/Osiris/Data/Extensions` without clearing the rest of
   that persistent development profile.
 - Test new-user installation and package behavior only under
-  `Programming/CleanInstall`.
+  `Programming/Sandbox/CleanInstall`; use `Programming/Sandbox/UpgradeTest` for
+  extension update and rollback tests.
 - Preserve the recovery archive under `Development/ExtensionRecovery`; it is not
   a release source and must not be committed.
+
+## Workspace handoff
+
+- Read the workspace-root `PROJECT-STATE.md` before continuing extension work.
+- Read the workspace-root `DESIGN-AGENT.md` before creating or modifying any
+  extension settings page or modal. Steam Library is the current completed
+  implementation baseline; reuse its shared host and canonical design contracts
+  instead of creating extension-specific approximations.
