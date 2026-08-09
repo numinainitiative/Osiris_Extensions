@@ -57,18 +57,22 @@
       "upstream": "https://github.com/JosefNemec/PlayniteExtensions"
     },
     {
-      "id": "SteamGridDBMetadata_f9a763e1-1ccb-4d7d-b955-d59e708f71c1",
+      "id": "SteamGridDBMetadata_8d89f55b-826c-43dc-8946-4038a6e182a2",
       "name": "SteamGridDB Metadata",
       "description": "Download community artwork from SteamGridDB.",
       "author": "Osiris",
       "category": "Metadata",
       "tags": ["Metadata"],
       "version": "1.0",
-      "distribution": "blocked-license-review",
-      "installFolder": "Metadata\\SteamGridDBMetadata_f9a763e1-1ccb-4d7d-b955-d59e708f71c1",
+      "distribution": "public",
+      "installFolder": "Metadata\\SteamGridDBMetadata_8d89f55b-826c-43dc-8946-4038a6e182a2",
+      "releaseTag": "steamgriddb-metadata-v1.0",
+      "packageUrl": "https://github.com/numinainitiative/Osiris_Extensions/releases/download/steamgriddb-metadata-v1.0/SteamGridDBMetadataOsiris_1.0.pext",
+      "sha256": "fc1637b0a4daf050efe363a087db06ca5c141511d484680e4d4d5f59357abd7b",
+      "size": 15039,
       "iconUrl": "https://raw.githubusercontent.com/numinainitiative/Osiris_Extensions/main/catalog/icons/steamgriddb-metadata.png",
-      "ownership": "osiris-fork",
-      "upstream": "https://github.com/cooperate/SteamGridDBMetadata"
+      "ownership": "original-clean-room",
+      "upstream": "https://www.steamgriddb.com/api/v2"
     },
     {
       "id": "UniversalSteamMetadata_f2db8fb1-4981-4dc4-b087-05c782215b72",
