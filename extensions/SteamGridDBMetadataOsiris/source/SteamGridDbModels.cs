@@ -13,6 +13,21 @@ namespace Osiris.Extensions.SteamGridDBMetadata
 
         [JsonProperty("errors")]
         public List<string> Errors { get; set; }
+
+        [JsonProperty("total")]
+        public int Total { get; set; }
+
+        [JsonProperty("limit")]
+        public int Limit { get; set; }
+    }
+
+    internal sealed class SteamGridDbImagePage
+    {
+        public List<SteamGridDbImage> Items { get; set; } = new List<SteamGridDbImage>();
+
+        public int Total { get; set; }
+
+        public int Limit { get; set; }
     }
 
     internal sealed class SteamGridDbGame

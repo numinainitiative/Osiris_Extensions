@@ -9,6 +9,7 @@ namespace Osiris.Extensions.SteamGridDBMetadata
     public sealed class SteamGridDbMetadataPlugin : MetadataPlugin
     {
         private readonly SteamGridDbSettingsViewModel settingsViewModel;
+        private readonly SteamGridDbOsirisRuntime osirisRuntime;
 
         public override Guid Id { get; } =
             new Guid("8d89f55b-826c-43dc-8946-4038a6e182a2");
@@ -27,6 +28,7 @@ namespace Osiris.Extensions.SteamGridDBMetadata
         {
             Properties = new MetadataPluginProperties { HasSettings = true };
             settingsViewModel = new SteamGridDbSettingsViewModel(this);
+            osirisRuntime = new SteamGridDbOsirisRuntime(() => settingsViewModel.Settings.Clone());
         }
 
         public override ISettings GetSettings(bool firstRunSettings)
@@ -43,5 +45,36 @@ namespace Osiris.Extensions.SteamGridDBMetadata
         {
             return new SteamGridDbMetadataProvider(options, settingsViewModel.Settings.Clone());
         }
+
+        // Runtime contract consumed by Osiris's media picker. Keeping the API key
+        // and all SteamGridDB requests in this extension makes disable/uninstall
+        // authoritative and prevents the theme from discovering stale settings.
+        public bool IsConfiguredForOsiris() => osirisRuntime.IsConfigured;
+
+        public string SearchGamesForOsiris(string query) => osirisRuntime.SearchGamesJson(query);
+
+        public string GetArtworkPageForOsiris(
+            string artworkKind,
+            string gameIds,
+            string assetType,
+            int requestedPage,
+            string dimensions) =>
+            osirisRuntime.GetArtworkPageJson(
+                artworkKind,
+                gameIds,
+                assetType,
+                requestedPage,
+                dimensions);
+
+        public string GetPreferredArtworkUrlForOsiris(
+            string artworkKind,
+            string gameIds,
+            string dimensions,
+            bool useAlternateForSimilarRole) =>
+            osirisRuntime.GetPreferredArtworkUrl(
+                artworkKind,
+                gameIds,
+                dimensions,
+                useAlternateForSimilarRole);
     }
 }

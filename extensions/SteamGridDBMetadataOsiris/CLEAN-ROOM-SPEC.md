@@ -22,7 +22,7 @@ The implementation may use only:
 - Assembly: `Osiris.SteamGridDBMetadata.dll`
 - Namespace root: `Osiris.Extensions.SteamGridDBMetadata`
 - Type: `MetadataProvider`
-- Initial development version: `0.1.0`
+- Initial public version: `1.0`
 - Intended release license: MIT
 
 ## Supported media
@@ -35,6 +35,17 @@ The implementation may use only:
 - Manual source selection from Game Edit -> Media.
 - Automatic metadata/media downloads through Osiris's metadata-provider
   contract.
+
+## Runtime ownership
+
+- The extension is the sole owner of the API key and all SteamGridDB HTTPS
+  requests.
+- Osiris may call the loaded extension's bounded runtime contract for title
+  search, paginated static or animated artwork, and ranked automatic choices.
+- Osiris must not scan arbitrary extension settings, read the API key, or call
+  SteamGridDB directly.
+- When this exact extension ID is absent or disabled, SteamGridDB is not offered
+  as a media source and no SteamGridDB request can occur.
 
 ## Settings
 

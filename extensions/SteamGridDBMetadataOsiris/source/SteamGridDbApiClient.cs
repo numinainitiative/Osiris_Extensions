@@ -52,12 +52,40 @@ namespace Osiris.Extensions.SteamGridDBMetadata
                 return Array.Empty<SteamGridDbImage>();
             }
 
+            return GetImagePage(
+                artworkKind,
+                target,
+                allowAdult,
+                allowHumor,
+                dimensions,
+                "static",
+                0,
+                cancellationToken).Items;
+        }
+
+        public SteamGridDbImagePage GetImagePage(
+            string artworkKind,
+            SteamGridDbTarget target,
+            bool allowAdult,
+            bool allowHumor,
+            IEnumerable<string> dimensions,
+            string assetType,
+            int page,
+            CancellationToken cancellationToken)
+        {
+            if (target == null)
+            {
+                return new SteamGridDbImagePage();
+            }
+
             var query = new List<string>
             {
-                "types=static",
+                "types=" + (string.Equals(assetType, "animated", StringComparison.OrdinalIgnoreCase)
+                    ? "animated"
+                    : "static"),
                 "nsfw=" + (allowAdult ? "any" : "false"),
                 "humor=" + (allowHumor ? "any" : "false"),
-                "page=0"
+                "page=" + Math.Max(0, page).ToString(System.Globalization.CultureInfo.InvariantCulture)
             };
             var dimensionList = dimensions == null
                 ? Array.Empty<string>()
@@ -74,16 +102,28 @@ namespace Osiris.Extensions.SteamGridDBMetadata
                 target.Kind,
                 target.Id,
                 string.Join("&", query));
-            return (Get<List<SteamGridDbImage>>(path, cancellationToken)
-                    ?? new List<SteamGridDbImage>())
+            var response = GetResponse<List<SteamGridDbImage>>(path, cancellationToken);
+            var items = (response?.Data ?? new List<SteamGridDbImage>())
                 .Where(item => item != null && !string.IsNullOrWhiteSpace(item.Url))
                 .OrderByDescending(item => item.Score)
                 .ThenByDescending(item => item.Upvotes - item.Downvotes)
                 .ThenByDescending(item => item.Id)
                 .ToList();
+            return new SteamGridDbImagePage
+            {
+                Items = items,
+                Total = response == null || response.Total <= 0 ? items.Count : response.Total,
+                Limit = response == null || response.Limit <= 0 ? Math.Max(1, items.Count) : response.Limit
+            };
         }
 
         private T Get<T>(string relativePath, CancellationToken cancellationToken)
+        {
+            var response = GetResponse<T>(relativePath, cancellationToken);
+            return response == null ? default(T) : response.Data;
+        }
+
+        private SteamGridDbResponse<T> GetResponse<T>(string relativePath, CancellationToken cancellationToken)
         {
             using (var request = new HttpRequestMessage(HttpMethod.Get, relativePath))
             {
@@ -113,7 +153,7 @@ namespace Osiris.Extensions.SteamGridDBMetadata
                             : detail);
                     }
 
-                    return payload.Data;
+                    return payload;
                 }
             }
         }
@@ -126,7 +166,7 @@ namespace Osiris.Extensions.SteamGridDBMetadata
                 BaseAddress = new Uri(BaseAddress),
                 Timeout = TimeSpan.FromSeconds(30)
             };
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("Osiris-SteamGridDBMetadata/0.1.0");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Osiris-SteamGridDBMetadata/1.0");
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             return client;
         }
