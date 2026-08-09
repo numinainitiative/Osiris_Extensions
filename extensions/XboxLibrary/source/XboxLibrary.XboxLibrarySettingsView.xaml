@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="XboxLibrary.XboxLibrarySettingsView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:pcmd="clr-namespace:Playnite.Commands" xmlns:sys="clr-namespace:System;assembly=mscorlib" xmlns:pcon="clr-namespace:Playnite.Converters" xmlns:xboxlibrary="clr-namespace:XboxLibrary">
+  <FrameworkElement.Resources>
+    <pcon:NegateConverter x:Key="NegateConverter" />
+    <sys:Boolean x:Key="True">True</sys:Boolean>
+    <sys:Boolean x:Key="False">False</sys:Boolean>
+  </FrameworkElement.Resources>
+  <StackPanel Margin="20">
+    <CheckBox Name="CheckXboxConnectAccount" Content="{DynamicResource LOCXboxSettingsConnectAccount}" IsChecked="{Binding Settings.ConnectAccount}" />
+    <StackPanel DockPanel.Dock="Top" Margin="40,5,5,5" IsEnabled="{Binding IsChecked, ElementName=CheckXboxConnectAccount}">
+      <CheckBox Name="CheckXboxImportInstalled" Margin="0,10,0,0" Content="{DynamicResource LOCXboxSettingsImportInstalledLabel}" IsChecked="{Binding Settings.ImportInstalledGames}" />
+      <CheckBox Name="CheckXboxImportUninstalled" Margin="0,15,0,0" Content="{DynamicResource LOCXboxSettingsImportUninstalledLabel}" IsChecked="{Binding Settings.ImportUninstalledGames}" />
+      <CheckBox Margin="0,15,0,0" Content="{DynamicResource LOCXboxImportConsoleGames}" IsChecked="{Binding Settings.ImportConsoleGames}" />
+      <StackPanel Orientation="Horizontal" Margin="0,15,0,10">
+        <Button Content="{DynamicResource LOCXboxAuthenticateLabel}" HorizontalAlignment="Left" Margin="0,5,5,5" Command="{Binding LoginCommand}" />
+        <TextBlock VerticalAlignment="Center" Margin="10,5,5,5">
+          <FrameworkElement.Tag>
+            <PriorityBinding>
+              <Binding Path="IsUserLoggedIn" IsAsync="True" />
+              <Binding Source="{x:Null}" />
+            </PriorityBinding>
+          </FrameworkElement.Tag>
+          <FrameworkElement.Style>
+            <Style BasedOn="{StaticResource BaseTextBlockStyle}" TargetType="{x:Type TextBlock}">
+              <Style.Triggers>
+                <Trigger Property="FrameworkElement.Tag" Value="{StaticResource True}">
+                  <Setter Property="Text" Value="{DynamicResource LOCXboxLoggedIn}" />
+                </Trigger>
+                <Trigger Property="FrameworkElement.Tag" Value="{StaticResource False}">
+                  <Setter Property="Text" Value="{DynamicResource LOCXboxNotLoggedIn}" />
+                </Trigger>
+                <Trigger Property="FrameworkElement.Tag" Value="{x:Null}">
+                  <Setter Property="Text" Value="{DynamicResource LOCXboxLoginChecking}" />
+                </Trigger>
+              </Style.Triggers>
+            </Style>
+          </FrameworkElement.Style>
+        </TextBlock>
+      </StackPanel>
+    </StackPanel>
+    <CheckBox Content="{DynamicResource LOCXboxXboxAppClientPriorityLaunch}" IsChecked="{Binding Settings.XboxAppClientPriorityLaunch}" Visibility="{Binding IsFirstRunUse, Converter={pcon:InvertedBooleanToVisibilityConverter}}" />
+    <TextBlock VerticalAlignment="Center" Margin="0,20,0,0">
+      <Hyperlink NavigateUri="https://github.com/JosefNemec/PlayniteExtensions/wiki/Xbox-Library-troubleshooting" Command="{x:Static pcmd:GlobalCommands.NavigateUrlCommand}" CommandParameter="{Binding NavigateUri, RelativeSource={RelativeSource Self}}">
+        <Run Text="{DynamicResource LOCXboxTroubleShootingIssues}" />
+      </Hyperlink>
+    </TextBlock>
+  </StackPanel>
+</UserControl>

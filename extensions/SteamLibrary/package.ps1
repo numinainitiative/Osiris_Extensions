@@ -69,6 +69,22 @@ foreach ($directory in @("Localization", "Resources", "SteamShared")) {
     Copy-Item -LiteralPath $source -Destination (Join-Path $stagingRoot $directory) -Recurse
 }
 
+$licensesRoot = Join-Path $stagingRoot "Licenses"
+New-Item -ItemType Directory -Path $licensesRoot -Force | Out-Null
+$licenseFiles = [ordered]@{
+    "Extension-License.txt" = Join-Path $extensionRoot "LICENSE"
+    "Playnite-MIT.md" = Join-Path $extensionRoot "LICENSES\Playnite-MIT.md"
+    "PlayniteBackend-EUPL-1.2.md" = Join-Path $extensionRoot "LICENSES\PlayniteBackend-EUPL-1.2.md"
+    "SteamKit2-NOTICE.txt" = Join-Path $repositoryRoot "extensions\UniversalSteamMetadata\LICENSES\SteamKit2-NOTICE.txt"
+    "SteamKit2-LGPL-2.1.txt" = Join-Path $repositoryRoot "extensions\UniversalSteamMetadata\LICENSES\LGPL-2.1.txt"
+}
+foreach ($entry in $licenseFiles.GetEnumerator()) {
+    if (-not (Test-Path -LiteralPath $entry.Value -PathType Leaf)) {
+        throw "Required license file is missing: $($entry.Value)"
+    }
+    Copy-Item -LiteralPath $entry.Value -Destination (Join-Path $licensesRoot $entry.Key)
+}
+
 $forbidden = @(Get-ChildItem -LiteralPath $stagingRoot -Recurse -File | Where-Object {
     $_.Extension -in @('.pdb', '.xml', '.log', '.cache') -or
     $_.FullName -match '(?i)(Data|ExtensionsData|browser|credential|cookie|token|settings)'

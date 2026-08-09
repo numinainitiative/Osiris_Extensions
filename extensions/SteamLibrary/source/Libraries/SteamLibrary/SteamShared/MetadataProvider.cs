@@ -1,5 +1,4 @@
-﻿using AngleSharp.Parser.Html;
-using Playnite.Common.Web;
+﻿using Playnite.Common.Web;
 using Playnite.SDK;
 using Playnite.SDK.Models;
 using PlayniteExtensions.Common;
@@ -289,34 +288,41 @@ namespace Steam
         public static string ParseDescription(string description)
         {
             description = description.Replace("%CDN_HOST_MEDIA_SSL%", "steamcdn-a.akamaihd.net");
-            var parser = new HtmlParser();
-            var page = parser.Parse(description);
-
-            // Playnite can't render videos so we swap these for thumbnail image instead
-            foreach (var videoElem in page.QuerySelectorAll("video"))
-            {
-                var poster = videoElem.GetAttribute("poster");
-                if (!poster.IsNullOrWhiteSpace())
+            // Osiris cannot render embedded store videos, so keep their poster image where possible.
+            description = Regex.Replace(
+                description,
+                @"<video\b(?<attributes>[^>]*)>[\s\S]*?</video\s*>",
+                match =>
                 {
-                    var elem = page.CreateElement("img");
-                    elem.SetAttribute("src", poster);
-                    videoElem.Parent.ReplaceChild(elem, videoElem);
-                }
-                else
-                {
-                    videoElem.Parent.RemoveChild(videoElem);
-                }
-            }
+                    var poster = Regex.Match(
+                        match.Groups["attributes"].Value,
+                        @"\bposter\s*=\s*(?:([""'])(?<quoted>.*?)\1|(?<bare>[^\s>]+))",
+                        RegexOptions.IgnoreCase);
+                    var value = poster.Groups["quoted"].Success
+                        ? poster.Groups["quoted"].Value
+                        : poster.Groups["bare"].Value;
+                    return string.IsNullOrWhiteSpace(value)
+                        ? string.Empty
+                        : "<img src=\"" + HttpUtility.HtmlAttributeEncode(value) + "\">";
+                },
+                RegexOptions.IgnoreCase);
 
-            // There's a bug in Playnite's HTML renderer that doesn't properly respect auto height.
-            // As a workaround we just remove explicit height that prevent HTML component from respecting height value.
-            foreach (var imgElem in page.QuerySelectorAll("img"))
-            {
-                imgElem.RemoveAttribute("height");
-                imgElem.RemoveAttribute("width");
-            }
+            // Explicit dimensions prevent Osiris' HTML view from sizing images responsively.
+            description = Regex.Replace(
+                description,
+                @"<img\b[^>]*>",
+                image => Regex.Replace(
+                    image.Value,
+                    @"\s+(?:height|width)\s*=\s*(?:""[^""]*""|'[^']*'|[^\s>]+)",
+                    string.Empty,
+                    RegexOptions.IgnoreCase),
+                RegexOptions.IgnoreCase);
 
-            return page.Body.InnerHtml;
+            var body = Regex.Match(
+                description,
+                @"<body\b[^>]*>(?<content>[\s\S]*?)</body\s*>",
+                RegexOptions.IgnoreCase);
+            return body.Success ? body.Groups["content"].Value : description;
         }
 
         public SteamGameMetadata GetGameMetadata(

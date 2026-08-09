@@ -94,6 +94,16 @@ foreach ($relativePath in $packageFiles) {
 }
 Copy-Item -LiteralPath (Join-Path $outputRoot "Localization") -Destination $stageRoot -Recurse
 
+$licensesRoot = Join-Path $stageRoot "Licenses"
+New-Item -ItemType Directory -Path $licensesRoot -Force | Out-Null
+Copy-Item -LiteralPath (Join-Path $repoRoot "extensions\GameGallery\LICENSE") `
+    -Destination (Join-Path $licensesRoot "Extension-License.txt")
+$dotnetLicense = Join-Path $sourceRoot "packages\Microsoft.Extensions.DependencyInjection.6.0.0\LICENSE.TXT"
+if (-not (Test-Path -LiteralPath $dotnetLicense -PathType Leaf)) {
+    throw "The .NET libraries license file is missing: $dotnetLicense"
+}
+Copy-Item -LiteralPath $dotnetLicense -Destination (Join-Path $licensesRoot "DotNet-Libraries-MIT.txt")
+
 $forbidden = Get-ChildItem -LiteralPath $stageRoot -Recurse -File | Where-Object {
     $_.Name -match '\.(pdb|log)$' -or
     $_.Name -eq "Playnite.SDK.dll" -or

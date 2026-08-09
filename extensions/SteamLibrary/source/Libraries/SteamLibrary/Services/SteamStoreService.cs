@@ -1,13 +1,12 @@
-using AngleSharp.Parser.Html;
-using Newtonsoft.Json;
 using Playnite.SDK;
 using Playnite.SDK.Events;
 using SteamLibrary.Models;
 using System;
 using System.Diagnostics;
-using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Web;
+using System.Web.Script.Serialization;
 
 namespace SteamLibrary.Services
 {
@@ -27,15 +26,31 @@ namespace SteamLibrary.Services
         {
             var str = await DownloadPageSourceAsync("https://store.steampowered.com/dynamicstore/userdata/");
 
-            if (str.Trim().StartsWith("<html", StringComparison.InvariantCultureIgnoreCase)
-                && str.Contains("<body", StringComparison.InvariantCultureIgnoreCase))
+            if (str.Trim().StartsWith("<html", StringComparison.InvariantCultureIgnoreCase) &&
+                str.IndexOf("<body", StringComparison.InvariantCultureIgnoreCase) >= 0)
             {
-                var doc = await new HtmlParser().ParseAsync(str);
-                str = doc.GetElementsByTagName("body").FirstOrDefault()?.TextContent;
+                var body = Regex.Match(
+                    str,
+                    @"<body\b[^>]*>(?<content>[\s\S]*?)</body\s*>",
+                    RegexOptions.IgnoreCase);
+                if (body.Success)
+                {
+                    str = body.Groups["content"].Value;
+                    str = Regex.Replace(
+                        str,
+                        @"^\s*<pre\b[^>]*>|</pre\s*>\s*$",
+                        string.Empty,
+                        RegexOptions.IgnoreCase);
+                    str = HttpUtility.HtmlDecode(str);
+                }
             }
 
-            var model = JsonConvert.DeserializeObject<SteamUserDataRoot>(str);
-            return model;
+            var serializer = new JavaScriptSerializer
+            {
+                MaxJsonLength = 16 * 1024 * 1024,
+                RecursionLimit = 64
+            };
+            return serializer.Deserialize<SteamUserDataRoot>(str);
         }
 
         private async Task<string> DownloadPageSourceAsync(string url)

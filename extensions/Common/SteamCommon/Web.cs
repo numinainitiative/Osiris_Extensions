@@ -1,5 +1,4 @@
-﻿using AngleSharp.Parser.Html;
-using Playnite.SDK;
+﻿using Playnite.SDK;
 using Playnite.SDK.Data;
 using FlowHttp;
 using SteamCommon.Models;
@@ -57,24 +56,27 @@ namespace SteamCommon
                 .DownloadString(cancelToken);
             if (searchPageSrc.IsSuccess)
             {
-                var parser = new HtmlParser();
-                var searchPage = parser.Parse(searchPageSrc.Content);
-                foreach (var gameElem in searchPage.QuerySelectorAll(".search_result_row"))
+                foreach (Match gameMatch in Regex.Matches(
+                    searchPageSrc.Content,
+                    @"<a\b(?<attributes>[^>]*\bclass\s*=\s*([""'])[^""']*\bsearch_result_row\b[^""']*\2[^>]*)>(?<content>[\s\S]*?)</a\s*>",
+                    RegexOptions.IgnoreCase))
                 {
-                    if (gameElem.HasAttribute("data-ds-packageid"))
+                    var attributes = gameMatch.Groups["attributes"].Value;
+                    var content = gameMatch.Groups["content"].Value;
+                    if (!GetHtmlAttribute(attributes, "data-ds-packageid").IsNullOrEmpty())
                     {
                         continue;
                     }
 
                     // Game Data
-                    var gameId = gameElem.GetAttribute("data-ds-appid");
+                    var gameId = GetHtmlAttribute(attributes, "data-ds-appid");
                     if (gameId.IsNullOrEmpty())
                     {
                         continue;
                     }
 
-                    var title = gameElem.QuerySelector(".title")?.InnerHtml ?? string.Empty;
-                    var releaseDate = gameElem.QuerySelector(".search_released")?.InnerHtml ?? string.Empty;
+                    var title = GetElementContentByClass(content, "title");
+                    var releaseDate = GetElementContentByClass(content, "search_released");
 
                     // Prices Data
                     var discountPercentage = 0;
@@ -85,34 +87,37 @@ namespace SteamCommon
                     var isReleased = false;
                     var isFree = false;
 
-                    var priceData = gameElem.QuerySelector(".search_discount_and_price");
-                    if (priceData != null && !priceData.InnerHtml.IsNullOrWhiteSpace())
+                    if (!GetElementContentByClass(content, "search_discount_and_price").IsNullOrWhiteSpace())
                     {
                         // Game has pricing data
-                        var discountBlock = priceData.QuerySelector(".discount_block");
-                        if (discountBlock != null)
+                        var discountBlock = GetOpeningTagByClass(content, "discount_block");
+                        if (!discountBlock.IsNullOrEmpty())
                         {
-                            if (discountBlock.HasAttribute("data-discount"))
+                            if (int.TryParse(GetHtmlAttribute(discountBlock, "data-discount"), out var parsedDiscount))
                             {
-                                discountPercentage = int.Parse(discountBlock.GetAttribute("data-discount"));
+                                discountPercentage = parsedDiscount;
                             }
 
-                            if (discountBlock.HasAttribute("data-price-final"))
+                            if (int.TryParse(GetHtmlAttribute(discountBlock, "data-price-final"), out var parsedFinalPrice))
                             {
-                                priceFinal = int.Parse(discountBlock.GetAttribute("data-price-final")) * 0.01;
+                                priceFinal = parsedFinalPrice * 0.01;
                             }
                         }
 
                         priceOriginal = GetSearchOriginalPrice(priceFinal, discountPercentage);
                         isDiscounted = priceFinal != priceOriginal && priceOriginal != 0;
-                        GetCurrencyFromSearchPriceDiv(priceData, out currency, out isReleased, out isFree);
+                        GetCurrencyFromSearchPriceHtml(content, out currency, out isReleased, out isFree);
                     }
 
                     //Urls
-                    var storeUrl = gameElem.GetAttribute("href");
-                    var capsuleUrl = gameElem.QuerySelector(".search_capsule")?
-                        .Children.FirstOrDefault()?
-                        .GetAttribute("src");
+                    var storeUrl = GetHtmlAttribute(attributes, "href");
+                    var capsule = Regex.Match(
+                        content,
+                        @"<[^>]*\bclass\s*=\s*([""'])[^""']*\bsearch_capsule\b[^""']*\1[^>]*>[\s\S]*?<img\b(?<attributes>[^>]*)>",
+                        RegexOptions.IgnoreCase);
+                    var capsuleUrl = capsule.Success
+                        ? GetHtmlAttribute(capsule.Groups["attributes"].Value, "src")
+                        : null;
 
                     results.Add(new StoreSearchResult
                     {
@@ -136,8 +141,8 @@ namespace SteamCommon
             return results;
         }
 
-        private static void GetCurrencyFromSearchPriceDiv(
-            AngleSharp.Dom.IElement priceBlock,
+        private static void GetCurrencyFromSearchPriceHtml(
+            string content,
             out string currency,
             out bool isReleased,
             out bool isFree)
@@ -145,11 +150,10 @@ namespace SteamCommon
             isReleased = false;
             isFree = false;
 
-            var priceEl = priceBlock.QuerySelector(".discount_final_price");
-            currency = priceEl != null ? GetCurrencyFromPriceString(priceEl.InnerHtml) : null;
+            var price = GetElementContentByClass(content, "discount_final_price");
+            currency = !price.IsNullOrEmpty() ? GetCurrencyFromPriceString(price) : null;
 
-            var noDiscount = priceBlock.QuerySelector(".search_discount_block.no_discount");
-            if (noDiscount != null)
+            if (HasClasses(content, "search_discount_block", "no_discount"))
             {
                 // Non discounted item
                 isReleased = true;
@@ -157,14 +161,60 @@ namespace SteamCommon
                 return;
             }
 
-            var discountDiv = priceBlock.QuerySelector(".search_discount_block");
-            if (discountDiv != null && !discountDiv.InnerHtml.IsNullOrEmpty())
+            if (!GetOpeningTagByClass(content, "search_discount_block").IsNullOrEmpty())
             {
                 // Discounted item
                 isReleased = true;
                 isFree = currency.IsNullOrEmpty();
                 return;
             }
+        }
+
+        private static string GetHtmlAttribute(string html, string attribute)
+        {
+            var match = Regex.Match(
+                html ?? string.Empty,
+                @"\b" + Regex.Escape(attribute) + @"\s*=\s*(?:([""'])(?<quoted>.*?)\1|(?<bare>[^\s>]+))",
+                RegexOptions.IgnoreCase);
+            var value = match.Groups["quoted"].Success
+                ? match.Groups["quoted"].Value
+                : match.Groups["bare"].Value;
+            return HttpUtility.HtmlDecode(value);
+        }
+
+        private static string GetElementContentByClass(string html, string className)
+        {
+            var match = Regex.Match(
+                html ?? string.Empty,
+                @"<(?<tag>[a-z0-9]+)\b[^>]*\bclass\s*=\s*([""'])(?=[^""']*\b" + Regex.Escape(className) + @"\b)[^""']*\2[^>]*>(?<content>[\s\S]*?)</\k<tag>\s*>",
+                RegexOptions.IgnoreCase);
+            return match.Success ? match.Groups["content"].Value : string.Empty;
+        }
+
+        private static string GetOpeningTagByClass(string html, string className)
+        {
+            var match = Regex.Match(
+                html ?? string.Empty,
+                @"<[^>]*\bclass\s*=\s*([""'])(?=[^""']*\b" + Regex.Escape(className) + @"\b)[^""']*\1[^>]*>",
+                RegexOptions.IgnoreCase);
+            return match.Success ? match.Value : string.Empty;
+        }
+
+        private static bool HasClasses(string html, params string[] classNames)
+        {
+            foreach (Match tag in Regex.Matches(
+                html ?? string.Empty,
+                @"<[^>]*\bclass\s*=\s*([""'])(?<classes>[^""']*)\1[^>]*>",
+                RegexOptions.IgnoreCase))
+            {
+                var classes = tag.Groups["classes"].Value;
+                if (classNames.All(name => Regex.IsMatch(classes, @"(?:^|\s)" + Regex.Escape(name) + @"(?:\s|$)", RegexOptions.IgnoreCase)))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static string GetCurrencyFromPriceString(string priceString)

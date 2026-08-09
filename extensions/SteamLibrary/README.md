@@ -3,8 +3,7 @@
 - Identity: `SteamLibrary_cb91dfc9-b977-43bf-8e70-55f46e410fab`
 - Osiris version: `1.0.1`
 - Upstream code baseline: Steam Library `2.40`
-- Status: private Osiris development fork; distributed only through a private
-  prerelease while final regression and dependency work continues
+- Status: public Osiris extension
 
 Steam Library imports locally installed and account-owned Steam games into
 Osiris. The source is based on the exact upstream revision used by the former
@@ -26,6 +25,8 @@ this repository.
 - Keep the tag-count input editable independently from its enable switch.
 - Align the extension's settings markup with Osiris's hosted settings and
   managed-list contracts.
+- Replace the inherited AngleSharp and Newtonsoft.Json dependencies with
+  bounded framework-native parsing.
 
 This fixes games whose legacy CDN cover was 600x800 and therefore cropped in
 Osiris's 2:3 vertical grid. Steam's declared library capsule assets are 2:3
@@ -42,11 +43,3 @@ Run `package.ps1` to rebuild and create the installable
 ignored `artifacts/SteamLibrary/1.0.1` directory.
 
 See `UPSTREAM.md` and `LICENSES/` for provenance and licensing.
-
-## Public-release hold
-
-The exact 2.40 baseline pins AngleSharp 0.9.9 and Newtonsoft.Json 10.0.3.
-Current NuGet auditing flags security advisories for both inherited versions.
-Steam Library must remain private until those dependencies are upgraded and the
-authentication, account import, metadata, install, and launch paths are
-regression-tested.

@@ -27,9 +27,5 @@ The `.pext` package and SHA-256 manifest are written beneath
 in GitHub Release assets.
 
 Game Gallery is an Osiris-maintained fork of darklinkpower's MIT-licensed Steam
-Store Screenshots Viewer. See `LICENSE` and `UPSTREAM.md`.
-
-The inherited source currently relies on AngleSharp 0.9.9, which NuGet flags for
-a moderate-severity advisory. The private prerelease retains it for binary
-compatibility with the current Osiris runtime; it must be upgraded together with
-the corresponding Osiris runtime dependency before public distribution.
+Store Screenshots Viewer. See `LICENSE` and `UPSTREAM.md`. Its unused inherited
+AngleSharp dependency was removed before the public 2.0.1 release.

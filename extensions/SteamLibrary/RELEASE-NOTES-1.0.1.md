@@ -1,7 +1,4 @@
-# Steam Library 1.0.1 — Private development prerelease
-
-This private prerelease is intended for manual Osiris acceptance testing. It is
-not approved for public distribution yet.
+# Steam Library 1.0.1
 
 ## Changes
 
@@ -15,6 +12,8 @@ not approved for public distribution yet.
   with the Osiris extension-settings host.
 - Preserves the existing Steam Library extension identity so imported games and
   extension settings continue to use the same profile locations.
+- Replaces the inherited AngleSharp and Newtonsoft.Json dependencies with
+  bounded framework-native parsing.
 
 ## Install
 
@@ -23,13 +22,5 @@ ZIP-format Osiris extension package. For a manual replacement, fully close
 Osiris and replace only the files inside the existing Steam Library extension
 folder; never replace or delete the surrounding Osiris `Data` directory or the
 Steam Library folder under `ExtensionsData`.
-
-## Private-release warning
-
-The inherited Steam Library 2.40 baseline uses AngleSharp 0.9.9 and
-Newtonsoft.Json 10.0.3, which currently have known NuGet security advisories.
-Keep this release private until those dependencies are upgraded and Steam
-authentication, account import, metadata, installation, and game launch receive
-complete regression coverage.
 
 The accompanying JSON asset records the package size and SHA-256 checksum.
