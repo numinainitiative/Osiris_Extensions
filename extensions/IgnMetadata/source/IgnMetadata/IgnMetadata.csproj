@@ -1,0 +1,45 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Version>1.0</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="AngleSharp" Version="0.9.9" />
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.3" NoWarn="NU1903" />
+    <PackageReference Include="PlayniteSDK" Version="6.4.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\PlayniteExtensions.Common\GlobalCommands.cs" Link="Common\GlobalCommands.cs" />
+    <Compile Include="..\PlayniteExtensions.Common\IEnumerableExtensions.cs" Link="Common\IEnumerableExtensions.cs" />
+    <Compile Include="..\PlayniteExtensions.Common\IPlatformUtility.cs" Link="Common\IPlatformUtility.cs" />
+    <Compile Include="..\PlayniteExtensions.Common\LibraryIdUtility.cs" Link="Common\LibraryIdUtility.cs" />
+    <Compile Include="..\PlayniteExtensions.Common\PlatformUtility.cs" Link="Common\PlatformUtility.cs" />
+    <Compile Include="..\PlayniteExtensions.Common\PlayniteConvert.cs" Link="Common\PlayniteConvert.cs" />
+    <Compile Include="..\PlayniteExtensions.Common\PluginSettingsViewModel.cs" Link="Common\PluginSettingsViewModel.cs" />
+    <Compile Include="..\PlayniteExtensions.Common\SortableNameConverter.cs" Link="Common\SortableNameConverter.cs" />
+    <Compile Include="..\PlayniteExtensions.Common\StringExtensions.cs" Link="Common\StringExtensions.cs" />
+    <Compile Include="..\PlayniteExtensions.Common\TitleComparer.cs" Link="Common\TitleComparer.cs" />
+    <Compile Include="..\PlayniteExtensions.Common\WebDownloader.cs" Link="Common\WebDownloader.cs" />
+    <Compile Include="..\PlayniteExtensions.Metadata.Common\GameDetails.cs" Link="Common\Metadata\GameDetails.cs" />
+    <Compile Include="..\PlayniteExtensions.Metadata.Common\GenericItemOption.cs" Link="Common\Metadata\GenericItemOption.cs" />
+    <Compile Include="..\PlayniteExtensions.Metadata.Common\GenericMetadataProvider.cs" Link="Common\Metadata\GenericMetadataProvider.cs" />
+    <Compile Include="..\PlayniteExtensions.Metadata.Common\IGameSearchResult.cs" Link="Common\Metadata\IGameSearchResult.cs" />
+    <Compile Include="..\PlayniteExtensions.Metadata.Common\IImageData.cs" Link="Common\Metadata\IImageData.cs" />
+    <Compile Include="..\PlayniteExtensions.Metadata.Common\ISearchableDataSource.cs" Link="Common\Metadata\ISearchableDataSource.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="extension.yaml" CopyToOutputDirectory="Always" />
+    <None Include="icon.png" CopyToOutputDirectory="Always" />
+    <None Include="Localization\*.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+</Project>

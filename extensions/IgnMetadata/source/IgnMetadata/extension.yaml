@@ -1,0 +1,14 @@
+﻿Id: IgnMetadata_6024e3a9-de7e-4848-9101-7a2f818e7e47
+Name: IGN Metadata
+Author: Osiris
+Version: 1.0
+Module: IgnMetadata.dll
+Type: MetadataProvider
+Icon: icon.png
+Links:
+  - Name: IGN
+    Url: https://www.ign.com/
+  - Name: GitHub repository
+    Url: https://github.com/Jeshibu/PlayniteExtensions
+  - Name: Donate via Ko-fi
+    Url: https://ko-fi.com/Jeshibu

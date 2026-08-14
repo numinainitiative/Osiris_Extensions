@@ -1,0 +1,20 @@
+<Project>
+    <PropertyGroup>
+        <TargetFramework>net462</TargetFramework>
+        <Copyright>Copyright 2025 Jeshibu; Osiris packaging copyright 2026 Numina Initiative</Copyright>
+        <OutputPath>bin\$(Configuration)\</OutputPath>
+        <LangVersion>14</LangVersion>
+        <Authors>Jeshibu; Numina Initiative</Authors>
+        <UseWpf>true</UseWpf>
+        <UseWindowsForms>true</UseWindowsForms>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+        <DebugType>full</DebugType>
+        <DefineConstants>TRACE;DEBUG;</DefineConstants>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+        <DebugType>pdbonly</DebugType>
+        <DefineConstants>TRACE</DefineConstants>
+        <Optimize>true</Optimize>
+    </PropertyGroup>
+</Project>

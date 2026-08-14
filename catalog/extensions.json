@@ -91,6 +91,25 @@
       "iconUrl": "https://raw.githubusercontent.com/numinainitiative/Osiris_Extensions/main/catalog/icons/steam-metadata.png",
       "ownership": "osiris-fork",
       "upstream": "https://github.com/JosefNemec/PlayniteExtensions"
+    },
+    {
+      "id": "IgnMetadata_6024e3a9-de7e-4848-9101-7a2f818e7e47",
+      "name": "IGN Metadata",
+      "description": "Download game details, scores, artwork, and metadata from IGN.",
+      "author": "Osiris",
+      "category": "Metadata",
+      "tags": ["Metadata"],
+      "version": "1.0",
+      "releaseDate": "2026-08-14T23:45:00+02:00",
+      "distribution": "public",
+      "installFolder": "Metadata\\IgnMetadata_6024e3a9-de7e-4848-9101-7a2f818e7e47",
+      "releaseTag": "ign-metadata-v1.0",
+      "packageUrl": "https://github.com/numinainitiative/Osiris_Extensions/releases/download/ign-metadata-v1.0/IgnMetadata_1.0.pext",
+      "sha256": "77385f0ead69524951b85650c6c53f58f0d2051ec67c237b6323d8bd75b6ed68",
+      "size": 67537,
+      "iconUrl": "https://raw.githubusercontent.com/numinainitiative/Osiris_Extensions/main/catalog/icons/ign-metadata.png",
+      "ownership": "osiris-fork",
+      "upstream": "https://github.com/Jeshibu/PlayniteExtensions"
     }
   ]
 }
