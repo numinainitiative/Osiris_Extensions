@@ -5,9 +5,9 @@ the public SteamGridDB API.
 
 ## Release
 
-Version `1.0` is the first public release for Osiris. It is distributed through
-the official Osiris Extensions catalog and contains no API key, settings,
-cached artwork, or profile data.
+Version `1.0.1` restores the Osiris media-picker runtime contract required by
+current Osiris builds. It is distributed through the official Osiris Extensions
+catalog and contains no API key, settings, cached artwork, or profile data.
 
 ## Features
 

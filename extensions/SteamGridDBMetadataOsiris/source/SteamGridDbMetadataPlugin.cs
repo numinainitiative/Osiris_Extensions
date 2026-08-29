@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Windows.Controls;
 using Playnite.SDK;
 using Playnite.SDK.Plugins;
@@ -53,6 +54,9 @@ namespace Osiris.Extensions.SteamGridDBMetadata
 
         public string SearchGamesForOsiris(string query) => osirisRuntime.SearchGamesJson(query);
 
+        public string SearchGamesForOsirisCancelable(string query, CancellationToken cancellationToken) =>
+            osirisRuntime.SearchGamesJson(query, cancellationToken);
+
         public string GetArtworkPageForOsiris(
             string artworkKind,
             string gameIds,
@@ -66,6 +70,38 @@ namespace Osiris.Extensions.SteamGridDBMetadata
                 requestedPage,
                 dimensions);
 
+        public string GetArtworkPageForOsirisCancelable(
+            string artworkKind,
+            string gameIds,
+            string assetType,
+            int requestedPage,
+            string dimensions,
+            CancellationToken cancellationToken) =>
+            osirisRuntime.GetArtworkPageJson(
+                artworkKind,
+                gameIds,
+                assetType,
+                requestedPage,
+                dimensions,
+                cancellationToken);
+
+        public string GetArtworkPageForOsirisCancelableV2(
+            string artworkKind,
+            string gameIds,
+            string assetType,
+            int requestedPage,
+            string dimensions,
+            int displayPageSize,
+            CancellationToken cancellationToken) =>
+            osirisRuntime.GetArtworkPageJson(
+                artworkKind,
+                gameIds,
+                assetType,
+                requestedPage,
+                dimensions,
+                displayPageSize,
+                cancellationToken);
+
         public string GetPreferredArtworkUrlForOsiris(
             string artworkKind,
             string gameIds,
@@ -76,5 +112,8 @@ namespace Osiris.Extensions.SteamGridDBMetadata
                 gameIds,
                 dimensions,
                 useAlternateForSimilarRole);
+
+        public byte[] DownloadArtworkForOsiris(string url, CancellationToken cancellationToken) =>
+            osirisRuntime.DownloadArtwork(url, cancellationToken);
     }
 }

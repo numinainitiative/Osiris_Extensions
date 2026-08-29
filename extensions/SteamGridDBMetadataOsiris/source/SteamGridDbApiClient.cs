@@ -125,36 +125,70 @@ namespace Osiris.Extensions.SteamGridDBMetadata
 
         private SteamGridDbResponse<T> GetResponse<T>(string relativePath, CancellationToken cancellationToken)
         {
+            string json;
+            var statusCode = HttpStatusCode.OK;
             using (var request = new HttpRequestMessage(HttpMethod.Get, relativePath))
             {
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-                using (var response = HttpClient.SendAsync(request, cancellationToken).GetAwaiter().GetResult())
+                if (SteamGridDbFallbackTransport.ShouldPreferAlternateRoute)
                 {
-                    var json = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-                    SteamGridDbResponse<T> payload;
+                    var fallback = SteamGridDbFallbackTransport.GetApi(
+                        new Uri(HttpClient.BaseAddress, relativePath),
+                        "Bearer " + apiKey,
+                        cancellationToken);
+                    statusCode = (HttpStatusCode)fallback.StatusCode;
+                    json = System.Text.Encoding.UTF8.GetString(fallback.Body);
+                }
+                else
+                {
                     try
                     {
-                        payload = JsonConvert.DeserializeObject<SteamGridDbResponse<T>>(json);
+                        using (var response = HttpClient.SendAsync(request, cancellationToken).GetAwaiter().GetResult())
+                        {
+                            statusCode = response.StatusCode;
+                            json = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                        }
                     }
-                    catch (JsonException exception)
+                    catch (Exception exception)
                     {
-                        throw new InvalidOperationException(
-                            "SteamGridDB returned an unreadable response.",
-                            exception);
-                    }
+                        if (cancellationToken.IsCancellationRequested ||
+                            !SteamGridDbFallbackTransport.IsRetryableNetworkFailure(exception))
+                        {
+                            throw;
+                        }
 
-                    if (!response.IsSuccessStatusCode || payload == null || !payload.Success)
-                    {
-                        var detail = payload?.Errors == null
-                            ? null
-                            : string.Join(" ", payload.Errors.Where(item => !string.IsNullOrWhiteSpace(item)));
-                        throw new InvalidOperationException(string.IsNullOrWhiteSpace(detail)
-                            ? "SteamGridDB request failed (HTTP " + (int)response.StatusCode + ")."
-                            : detail);
+                        var fallback = SteamGridDbFallbackTransport.GetApi(
+                            new Uri(HttpClient.BaseAddress, relativePath),
+                            "Bearer " + apiKey,
+                            cancellationToken);
+                        statusCode = (HttpStatusCode)fallback.StatusCode;
+                        json = System.Text.Encoding.UTF8.GetString(fallback.Body);
                     }
-
-                    return payload;
                 }
+
+                SteamGridDbResponse<T> payload;
+                try
+                {
+                    payload = JsonConvert.DeserializeObject<SteamGridDbResponse<T>>(json);
+                }
+                catch (JsonException exception)
+                {
+                    throw new InvalidOperationException(
+                        "SteamGridDB returned an unreadable response.",
+                        exception);
+                }
+
+                if ((int)statusCode < 200 || (int)statusCode >= 300 || payload == null || !payload.Success)
+                {
+                    var detail = payload?.Errors == null
+                        ? null
+                        : string.Join(" ", payload.Errors.Where(item => !string.IsNullOrWhiteSpace(item)));
+                    throw new InvalidOperationException(string.IsNullOrWhiteSpace(detail)
+                        ? "SteamGridDB request failed (HTTP " + (int)statusCode + ")."
+                        : detail);
+                }
+
+                return payload;
             }
         }
 
@@ -164,7 +198,7 @@ namespace Osiris.Extensions.SteamGridDBMetadata
             var client = new HttpClient
             {
                 BaseAddress = new Uri(BaseAddress),
-                Timeout = TimeSpan.FromSeconds(30)
+                Timeout = TimeSpan.FromSeconds(7)
             };
             client.DefaultRequestHeaders.UserAgent.ParseAdd("Osiris-SteamGridDBMetadata/1.0");
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));

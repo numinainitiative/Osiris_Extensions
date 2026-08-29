@@ -9,7 +9,7 @@ namespace Osiris.Extensions.SteamGridDBMetadata
 {
     internal sealed class SteamGridDbOsirisRuntime
     {
-        private const int DisplayPageSize = 20;
+        private const int DefaultDisplayPageSize = 9;
         private readonly Func<SteamGridDbSettings> getSettings;
 
         public SteamGridDbOsirisRuntime(Func<SteamGridDbSettings> getSettings)
@@ -21,8 +21,13 @@ namespace Osiris.Extensions.SteamGridDBMetadata
 
         public string SearchGamesJson(string query)
         {
+            return SearchGamesJson(query, CancellationToken.None);
+        }
+
+        public string SearchGamesJson(string query, CancellationToken cancellationToken)
+        {
             var settings = getSettings();
-            var games = CreateClient(settings).SearchGames(query, CancellationToken.None);
+            var games = CreateClient(settings).SearchGames(query, cancellationToken);
             return JsonConvert.SerializeObject(games);
         }
 
@@ -33,17 +38,56 @@ namespace Osiris.Extensions.SteamGridDBMetadata
             int requestedPage,
             string dimensions)
         {
+            return GetArtworkPageJson(
+                artworkKind,
+                gameIds,
+                assetType,
+                requestedPage,
+                dimensions,
+                GetDefaultDisplayPageSize(artworkKind),
+                CancellationToken.None);
+        }
+
+        public string GetArtworkPageJson(
+            string artworkKind,
+            string gameIds,
+            string assetType,
+            int requestedPage,
+            string dimensions,
+            CancellationToken cancellationToken)
+        {
+            return GetArtworkPageJson(
+                artworkKind,
+                gameIds,
+                assetType,
+                requestedPage,
+                dimensions,
+                GetDefaultDisplayPageSize(artworkKind),
+                cancellationToken);
+        }
+
+        public string GetArtworkPageJson(
+            string artworkKind,
+            string gameIds,
+            string assetType,
+            int requestedPage,
+            string dimensions,
+            int displayPageSize,
+            CancellationToken cancellationToken)
+        {
+            displayPageSize = Math.Max(1, Math.Min(40, displayPageSize));
             var settings = getSettings();
             var client = CreateClient(settings);
             var ids = ParseIds(gameIds);
             var dimensionList = ParseValues(dimensions);
-            var remainingSkip = Math.Max(0, requestedPage - 1) * DisplayPageSize;
+            var remainingSkip = Math.Max(0, requestedPage - 1) * displayPageSize;
             var result = new List<SteamGridDbImage>();
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var hasNextPage = false;
 
             for (var gameIndex = 0; gameIndex < ids.Count; gameIndex++)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var target = new SteamGridDbTarget { Kind = "game", Id = ids[gameIndex] };
                 var first = client.GetImagePage(
                     artworkKind,
@@ -53,7 +97,7 @@ namespace Osiris.Extensions.SteamGridDBMetadata
                     dimensionList,
                     assetType,
                     0,
-                    CancellationToken.None);
+                    cancellationToken);
                 var total = first.Total;
                 var limit = Math.Max(1, first.Limit);
                 if (remainingSkip >= total)
@@ -67,6 +111,7 @@ namespace Osiris.Extensions.SteamGridDBMetadata
                 remainingSkip = 0;
                 while ((apiPage * limit) < total)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var page = apiPage == 0
                         ? first
                         : client.GetImagePage(
@@ -77,14 +122,14 @@ namespace Osiris.Extensions.SteamGridDBMetadata
                             dimensionList,
                             assetType,
                             apiPage,
-                            CancellationToken.None);
+                            cancellationToken);
                     if (page.Items.Count == 0) break;
                     for (var itemIndex = offset; itemIndex < page.Items.Count; itemIndex++)
                     {
                         var item = page.Items[itemIndex];
                         if (item == null || string.IsNullOrWhiteSpace(item.Url) || !seen.Add(item.Url)) continue;
                         result.Add(item);
-                        if (result.Count == DisplayPageSize)
+                        if (result.Count == displayPageSize)
                         {
                             var consumed = (apiPage * limit) + itemIndex + 1;
                             hasNextPage = consumed < total || gameIndex < ids.Count - 1;
@@ -97,6 +142,13 @@ namespace Osiris.Extensions.SteamGridDBMetadata
             }
 
             return JsonConvert.SerializeObject(new { items = result, hasNextPage });
+        }
+
+        internal static int GetDefaultDisplayPageSize(string artworkKind)
+        {
+            return string.Equals(artworkKind, "grids", StringComparison.OrdinalIgnoreCase)
+                ? 20
+                : DefaultDisplayPageSize;
         }
 
         public string GetPreferredArtworkUrl(
@@ -138,6 +190,11 @@ namespace Osiris.Extensions.SteamGridDBMetadata
                 "Same",
                 StringComparison.OrdinalIgnoreCase);
             return ranked[Math.Min(useAlternate ? 1 : 0, ranked.Count - 1)].Url;
+        }
+
+        public byte[] DownloadArtwork(string url, CancellationToken cancellationToken)
+        {
+            return SteamGridDbFallbackTransport.DownloadArtwork(url, cancellationToken);
         }
 
         private static SteamGridDbApiClient CreateClient(SteamGridDbSettings settings)

@@ -1,7 +1,7 @@
 Id: SteamGridDBMetadata_8d89f55b-826c-43dc-8946-4038a6e182a2
 Name: SteamGridDB Metadata
 Author: Osiris
-Version: 1.0
+Version: 1.0.1
 Module: Osiris.SteamGridDBMetadata.dll
 Type: MetadataProvider
 Icon: icon.png

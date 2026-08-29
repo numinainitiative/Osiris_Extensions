@@ -58,6 +58,7 @@ public class IgnApiClient(IWebDownloader downloader)
         {
             headers.Add("apollographql-client-name", "kraken");
             headers.Add("apollographql-client-version", "v0.67.0");
+            headers.Add("x-apollo-operation-name", operationName);
         }
 
         var response = downloader.DownloadString(url, referer: "https://www.ign.com/reviews/games", headerSetter: HeaderSetter, contentType: "application/json");
