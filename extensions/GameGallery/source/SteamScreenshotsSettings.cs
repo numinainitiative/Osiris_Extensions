@@ -14,6 +14,13 @@ namespace SteamScreenshots
         [DontSerialize]
         public bool IsControlVisible { get => _isControlVisible; set => SetValue(ref _isControlVisible, value); }
         public bool SteamAppDetailsMigrationDone { get; set; } = false;
+
+        private string _expandedExperience = "FullScreen";
+        public string ExpandedExperience
+        {
+            get => _expandedExperience;
+            set => SetValue(ref _expandedExperience, value == "Cinematic" ? "Cinematic" : "FullScreen");
+        }
     }
 
     public class SteamScreenshotsSettingsViewModel : ObservableObject, ISettings

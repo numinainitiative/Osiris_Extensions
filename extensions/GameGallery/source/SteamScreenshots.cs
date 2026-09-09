@@ -39,7 +39,7 @@ namespace SteamScreenshots
             Settings = new SteamScreenshotsSettingsViewModel(this);
             Properties = new GenericPluginProperties
             {
-                HasSettings = false
+                HasSettings = true
             };
 
             AddCustomElementSupport(new AddCustomElementSupportArgs

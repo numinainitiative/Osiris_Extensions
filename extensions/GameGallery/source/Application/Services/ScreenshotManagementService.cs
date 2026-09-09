@@ -17,6 +17,7 @@ namespace SteamScreenshots.Application.Services
 {
     public class ScreenshotManagementService : IDisposable
     {
+        private const int MaximumPreloadedThumbnails = 12;
         private bool _disposed = false;
         private readonly IDictionary<ScreenshotServiceType, IScreenshotProvider> _providers;
         private readonly IImageProvider _imageProvider;
@@ -37,7 +38,7 @@ namespace SteamScreenshots.Application.Services
             _logger = logger;
             _pluginDataPath = pluginDataPath;
             _pluginInstallPath = pluginInstallPath;
-            _semaphore = new SemaphoreSlim(4);
+            _semaphore = new SemaphoreSlim(2);
         }
 
         public async Task<List<Screenshot>> GetScreenshots(ScreenshotServiceType serviceType,
@@ -61,27 +62,29 @@ namespace SteamScreenshots.Application.Services
                 .ToList();
 
             var initializeTasks = new List<Task>();
-            foreach (var screenshot in screenshots)
+            foreach (var screenshot in screenshots.Take(MaximumPreloadedThumbnails))
             {
                 if (!screenshotInitializationOptions.LazyLoadThumbnail)
                 {
-                    initializeTasks.Add(InitializeWithSemaphoreAsync(screenshot.InitializeThumbnail, _semaphore));
+                    initializeTasks.Add(InitializeWithSemaphoreAsync(
+                        screenshot.InitializeThumbnail,
+                        _semaphore,
+                        cancellationToken));
                 }
+            }
 
-                if (!screenshotInitializationOptions.LazyLoadFullImage)
-                {
-                    initializeTasks.Add(InitializeWithSemaphoreAsync(screenshot.InitializeFullImage, _semaphore));
-                }
+            // The details page uses a bounded stage image. Full-resolution images
+            // are decoded only when the user opens the fullscreen viewer.
+            if (screenshots.Count > 0)
+            {
+                initializeTasks.Add(InitializeWithSemaphoreAsync(
+                    screenshots[0].InitializeStageImage,
+                    _semaphore,
+                    cancellationToken));
             }
 
             if (initializeTasks.Any())
             {
-                // Initialize at least the first image so it's not loaded synchronously when first displayed
-                if (screenshotInitializationOptions.LazyLoadFullImage)
-                {
-                    initializeTasks.Add(InitializeWithSemaphoreAsync(screenshots[0].InitializeFullImage, _semaphore));
-                }
-
                 await Task.WhenAll(initializeTasks);
             }
 
@@ -102,8 +105,6 @@ namespace SteamScreenshots.Application.Services
             var trailers = trailerData
                 .Select(item => new Trailer(item.Name, item.ThumbnailUrl, item.VideoUrl, _imageProvider))
                 .ToList();
-            await Task.WhenAll(trailers.Select(trailer =>
-                InitializeWithSemaphoreAsync(trailer.InitializeThumbnail, _semaphore)));
             return trailers;
         }
 
@@ -238,8 +239,11 @@ namespace SteamScreenshots.Application.Services
 
         private string FindGalleryFfmpeg()
         {
+            var appDirectory = AppDomain.CurrentDomain.BaseDirectory;
             var candidates = new[]
             {
+                Path.Combine(appDirectory, "ffmpeg.exe"),
+                Path.Combine(appDirectory, "Tools", "ffmpeg.exe"),
                 Path.Combine(_pluginDataPath ?? string.Empty, "Tools", "ffmpeg.exe"),
                 Path.Combine(_pluginInstallPath ?? string.Empty, "Tools", "ffmpeg.exe"),
                 Path.Combine(_pluginInstallPath ?? string.Empty, "ffmpeg.exe")
@@ -249,23 +253,6 @@ namespace SteamScreenshots.Application.Services
             {
                 return bundled;
             }
-
-            var environmentPath = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-            foreach (var directory in environmentPath.Split(Path.PathSeparator))
-            {
-                try
-                {
-                    var candidate = Path.Combine(directory.Trim(), "ffmpeg.exe");
-                    if (File.Exists(candidate))
-                    {
-                        return candidate;
-                    }
-                }
-                catch
-                {
-                }
-            }
-
             return null;
         }
 
@@ -292,12 +279,15 @@ namespace SteamScreenshots.Application.Services
             }
         }
 
-        private async Task InitializeWithSemaphoreAsync(Action initializeFunc, SemaphoreSlim semaphore)
+        private async Task InitializeWithSemaphoreAsync(
+            Action<CancellationToken> initializeFunc,
+            SemaphoreSlim semaphore,
+            CancellationToken cancellationToken)
         {
-            await semaphore.WaitAsync();
+            await semaphore.WaitAsync(cancellationToken);
             try
             {
-                await Task.Run(() => initializeFunc());
+                await Task.Run(() => initializeFunc(cancellationToken), cancellationToken);
             }
             finally
             {

@@ -29,7 +29,9 @@ namespace SteamScreenshots.Screenshots
         private int _currentIndex;
         private BitmapImage _currentBitmapImage;
         private readonly Window _window;
+        private readonly ScreenshotsView _view;
         private ImageIdentifier _lastImageSet = ImageIdentifier.ImageB;
+        private int _fadeVersion;
         private DoubleAnimation _fadeOutAnimation;
         private DoubleAnimation _fadeInAnimation;
         private BitmapImage _bitmapImageA;
@@ -72,6 +74,7 @@ namespace SteamScreenshots.Screenshots
         public ScreenshotsViewModel(Window window, List<Screenshot> screenshots)
         {
             _window = window;
+            _view = window.Content as ScreenshotsView;
             Screenshots = screenshots.ToObservable();
             NextCommand = new RelayCommand(NextImage, CanNavigate);
             BackCommand = new RelayCommand(PreviousImage, CanNavigate);
@@ -137,6 +140,7 @@ namespace SteamScreenshots.Screenshots
 
         private void SetNewScreenshot(Screenshot screenshot)
         {
+            var previousScreenshot = LastDisplayedScreenshot;
             if (_lastImageSet == ImageIdentifier.ImageA)
             {
                 BitmapImageB = screenshot.FullImage;
@@ -149,14 +153,17 @@ namespace SteamScreenshots.Screenshots
             }
 
             LastDisplayedScreenshot = screenshot;
-            FadeImages();
+            FadeImages(previousScreenshot);
         }
 
-        private void FadeImages()
+        private void FadeImages(Screenshot previousScreenshot)
         {
-            if (_window.Content is ScreenshotsView content)
+            var content = _view;
+            if (content != null)
             {
-                if (_lastImageSet == ImageIdentifier.ImageA)
+                var fadeVersion = ++_fadeVersion;
+                var incomingImage = _lastImageSet;
+                if (incomingImage == ImageIdentifier.ImageA)
                 {
                     Storyboard.SetTarget(_fadeInAnimation, content.ImageA);
                     Storyboard.SetTarget(_fadeOutAnimation, content.ImageB);
@@ -170,13 +177,34 @@ namespace SteamScreenshots.Screenshots
                 var storyboard = new Storyboard();
                 storyboard.Children.Add(_fadeOutAnimation);
                 storyboard.Children.Add(_fadeInAnimation);
+                storyboard.Completed += (sender, args) =>
+                {
+                    if (fadeVersion != _fadeVersion)
+                    {
+                        return;
+                    }
+
+                    if (incomingImage == ImageIdentifier.ImageA)
+                    {
+                        BitmapImageB = null;
+                    }
+                    else
+                    {
+                        BitmapImageA = null;
+                    }
+                    if (previousScreenshot != null && !ReferenceEquals(previousScreenshot, LastDisplayedScreenshot))
+                    {
+                        previousScreenshot.ReleaseFullImage();
+                    }
+                };
                 storyboard.Begin();
             }
         }
 
         private void CloseWindow()
         {
-            if (_window.Content is ScreenshotsView content)
+            var content = _view;
+            if (content != null)
             {
                 if (_lastImageSet == ImageIdentifier.ImageA)
                 {
@@ -230,8 +258,16 @@ namespace SteamScreenshots.Screenshots
             _window.MouseRightButtonUp += Window_MouseRightButtonUp;
             _window.Closed += (s, e) =>
             {
+                _fadeVersion++;
                 _window.PreviewMouseWheel -= WheelHandler;
                 _window.MouseRightButtonUp -= Window_MouseRightButtonUp;
+                BitmapImageA = null;
+                BitmapImageB = null;
+                foreach (var screenshot in Screenshots)
+                {
+                    screenshot.ReleaseFullImage();
+                }
+                GalleryBitmapMemory.RequestCollection();
             };
         }
 

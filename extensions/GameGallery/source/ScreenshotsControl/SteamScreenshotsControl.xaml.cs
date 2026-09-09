@@ -50,6 +50,9 @@ namespace SteamScreenshots.ScreenshotsControl
         private readonly DesktopView _activeViewAtCreation;
         private readonly DispatcherTimer _updateControlDataDelayTimer;
         private FileSystemWatcher _localMediaWatcher;
+        private CancellationTokenSource _loadCancellation;
+        private CancellationTokenSource _selectionCancellation;
+        private int _selectionLoadVersion;
 
         private static readonly Regex LocalScreenshotPattern = new Regex(
             @"^GalleryImage(\d*)$",
@@ -73,6 +76,7 @@ namespace SteamScreenshots.ScreenshotsControl
         private string _galleryStatusText = "Loading gallery...";
         private bool _isGalleryEnabled = true;
         private string _gallerySource = "Steam";
+        private string _gallerySteamAppId;
 
 
         public ObservableCollection<Screenshot> Screenshots
@@ -112,8 +116,9 @@ namespace SteamScreenshots.ScreenshotsControl
             {
                 if (_selectedScreenshot != value)
                 {
+                    var previousScreenshot = _selectedScreenshot;
                     _selectedScreenshot = value;
-                    CurrentImageBitmap = _selectedScreenshot?.FullImage;
+                    BeginLoadSelectedScreenshot(_selectedScreenshot, previousScreenshot);
                     OnPropertyChanged();
                 }
             }
@@ -132,8 +137,12 @@ namespace SteamScreenshots.ScreenshotsControl
                 _selectedMediaItem = value;
                 if (value is Trailer trailer)
                 {
+                    CancelSelectionLoad();
+                    var previousScreenshot = _selectedScreenshot;
                     _selectedScreenshot = null;
                     CurrentImageBitmap = null;
+                    previousScreenshot?.ReleaseStageImage();
+                    ReleaseStageImagesExcept(null);
                     IsTrailerSelected = true;
                     CurrentTrailerUrl = trailer.VideoUrl;
                     OnPropertyChanged(nameof(SelectedScreenshot));
@@ -223,6 +232,10 @@ namespace SteamScreenshots.ScreenshotsControl
         public RelayCommand SelectPreviousScreenshotCommand { get; }
         public RelayCommand SelectNextScreenshotCommand { get; }
 
+        // Osiris supplies its standard window chrome without coupling the plugin to the theme assembly.
+        public Action<Window> ConfigureExpandedWindow { get; set; }
+        public bool UseCinematicExpandedExperience => _settingsViewModel.Settings.ExpandedExperience == "Cinematic";
+
 
         public SteamScreenshotsControl(SteamScreenshotsSettingsViewModel settingsViewModel, ScreenshotManagementService screenshotManagementService)
         {
@@ -311,7 +324,15 @@ namespace SteamScreenshots.ScreenshotsControl
         private async void UpdateControlData(object sender, EventArgs e)
         {
             _updateControlDataDelayTimer.Stop();
-            await UpdateControlAsync();
+            var cancellationToken = _loadCancellation?.Token ?? CancellationToken.None;
+            try
+            {
+                await UpdateControlAsync(cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                // A game or page change superseded this gallery request.
+            }
         }
 
         private void SetCollapsedVisibility()
@@ -335,7 +356,7 @@ namespace SteamScreenshots.ScreenshotsControl
             //is not in the active view. To prevent unecessary processing we
             //can stop processing if the active view is not the same one was
             //the one during creation
-            _updateControlDataDelayTimer.Stop();
+            CancelPendingLoads();
             if (_playniteApi.ApplicationInfo.Mode == ApplicationMode.Desktop && _activeViewAtCreation != _playniteApi.MainView.ActiveDesktopView)
             {
                 return;
@@ -355,6 +376,7 @@ namespace SteamScreenshots.ScreenshotsControl
             var displaySettings = LoadGalleryDisplaySettings(newContext);
             IsGalleryEnabled = displaySettings.Enabled;
             GallerySource = displaySettings.Source;
+            _gallerySteamAppId = displaySettings.SteamAppId;
             if (!IsGalleryEnabled)
             {
                 GalleryStatusText = null;
@@ -362,6 +384,7 @@ namespace SteamScreenshots.ScreenshotsControl
                 SetCollapsedVisibility();
                 return;
             }
+            _loadCancellation = new CancellationTokenSource();
             GalleryStatusText = "Loading gallery...";
             if (string.Equals(GallerySource, "Local", StringComparison.OrdinalIgnoreCase))
                 ConfigureLocalMediaWatcher(newContext);
@@ -394,6 +417,15 @@ namespace SteamScreenshots.ScreenshotsControl
                         settings.Source = string.Equals(value, "Local", StringComparison.OrdinalIgnoreCase)
                             ? "Local"
                             : "Steam";
+                    }
+                    else if (string.Equals(key, "SteamAppId", StringComparison.OrdinalIgnoreCase))
+                    {
+                        long steamAppId;
+                        if (long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out steamAppId) &&
+                            steamAppId > 0)
+                        {
+                            settings.SteamAppId = steamAppId.ToString(CultureInfo.InvariantCulture);
+                        }
                     }
                 }
             }
@@ -447,7 +479,8 @@ namespace SteamScreenshots.ScreenshotsControl
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                _updateControlDataDelayTimer.Stop();
+                CancelPendingLoads();
+                _loadCancellation = new CancellationTokenSource();
                 _updateControlDataDelayTimer.Start();
             }));
         }
@@ -460,7 +493,84 @@ namespace SteamScreenshots.ScreenshotsControl
 
         private void OnControlUnloaded(object sender, RoutedEventArgs args)
         {
+            CancelPendingLoads();
             DisposeLocalMediaWatcher();
+        }
+
+        private void CancelPendingLoads()
+        {
+            _updateControlDataDelayTimer.Stop();
+            CancelSelectionLoad();
+            if (_loadCancellation != null)
+            {
+                _loadCancellation.Cancel();
+                _loadCancellation.Dispose();
+                _loadCancellation = null;
+            }
+        }
+
+        private void CancelSelectionLoad()
+        {
+            _selectionLoadVersion++;
+            if (_selectionCancellation != null)
+            {
+                _selectionCancellation.Cancel();
+                _selectionCancellation.Dispose();
+                _selectionCancellation = null;
+            }
+        }
+
+        private async void BeginLoadSelectedScreenshot(
+            Screenshot screenshot,
+            Screenshot previousScreenshot = null)
+        {
+            CancelSelectionLoad();
+            CurrentImageBitmap = null;
+            if (previousScreenshot != null && !ReferenceEquals(previousScreenshot, screenshot))
+            {
+                previousScreenshot.ReleaseStageImage();
+            }
+            if (screenshot == null)
+            {
+                return;
+            }
+
+            var parentToken = _loadCancellation?.Token ?? CancellationToken.None;
+            var cancellation = CancellationTokenSource.CreateLinkedTokenSource(parentToken);
+            _selectionCancellation = cancellation;
+            var version = _selectionLoadVersion;
+            try
+            {
+                var bitmap = await Task.Run(
+                    () => screenshot.GetStageImage(cancellation.Token),
+                    cancellation.Token);
+                if (!cancellation.IsCancellationRequested &&
+                    version == _selectionLoadVersion &&
+                    ReferenceEquals(_selectedScreenshot, screenshot))
+                {
+                    CurrentImageBitmap = bitmap;
+                    ReleaseStageImagesExcept(screenshot);
+                }
+                else
+                {
+                    screenshot.ReleaseStageImage();
+                }
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception exception)
+            {
+                _logger.Warn(exception, "Gallery image could not be loaded.");
+            }
+            finally
+            {
+                if (ReferenceEquals(_selectionCancellation, cancellation))
+                {
+                    _selectionCancellation.Dispose();
+                    _selectionCancellation = null;
+                }
+            }
         }
 
         private void DisposeLocalMediaWatcher()
@@ -483,6 +593,7 @@ namespace SteamScreenshots.ScreenshotsControl
         {
             SetCollapsedVisibility();
             _activeContext = default;
+            ReleaseTransientImages();
             Screenshots.Clear();
             MediaItems.Clear();
             SelectedMediaItem = null;
@@ -496,14 +607,34 @@ namespace SteamScreenshots.ScreenshotsControl
             _isValuesDefaultState = true;
         }
 
-        private async Task UpdateControlAsync()
+        private void ReleaseTransientImages()
+        {
+            foreach (var screenshot in Screenshots)
+            {
+                screenshot.ReleaseTransientImages();
+            }
+            CurrentImageBitmap = null;
+        }
+
+        private void ReleaseStageImagesExcept(Screenshot retainedScreenshot)
+        {
+            foreach (var screenshot in Screenshots)
+            {
+                if (!ReferenceEquals(screenshot, retainedScreenshot))
+                {
+                    screenshot.ReleaseStageImage();
+                }
+            }
+        }
+
+        private async Task UpdateControlAsync(CancellationToken cancellationToken)
         {
             if (GameContext is null)
             {
                 return;
             }
 
-            await LoadControlData(GameContext).ConfigureAwait(false);
+            await LoadControlData(GameContext, cancellationToken).ConfigureAwait(false);
         }
 
         private async Task LoadControlData(Game game, CancellationToken cancellationToken = default)
@@ -535,12 +666,23 @@ namespace SteamScreenshots.ScreenshotsControl
                     .ThenBy(item => item.Path, StringComparer.OrdinalIgnoreCase)
                     .Select(item => _screenshotManagementService.CreateLocalTrailer(item.Path))
                     .ToList();
+
+                if (screenshots.Count > 0)
+                {
+                    await Task.Run(
+                        () => screenshots[0].InitializeStageImage(cancellationToken),
+                        cancellationToken).ConfigureAwait(false);
+                }
             }
             else
             {
                 try
                 {
-                    var steamId = Steam.GetGameSteamId(game, true, true);
+                    var steamId = _gallerySteamAppId;
+                    if (string.IsNullOrEmpty(steamId))
+                    {
+                        steamId = Steam.GetGameSteamId(game, true, true);
+                    }
                     if (string.IsNullOrEmpty(steamId))
                     {
                         steamId = await Task.Run(() =>
@@ -561,6 +703,10 @@ namespace SteamScreenshots.ScreenshotsControl
                             cancellationToken).ConfigureAwait(false);
                     }
                 }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
                 catch (Exception exception)
                 {
                     _logger.Warn(exception, "Steam Store Gallery could not be loaded.");
@@ -569,6 +715,7 @@ namespace SteamScreenshots.ScreenshotsControl
                 }
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             if (_activeContext == scopeContext && _currentGame?.Id == game.Id)
             {
                 try
@@ -625,6 +772,7 @@ namespace SteamScreenshots.ScreenshotsControl
         {
             public bool Enabled { get; set; }
             public string Source { get; set; }
+            public string SteamAppId { get; set; }
         }
 
         private void SelectPreviousImageScreenshot()
@@ -685,7 +833,7 @@ namespace SteamScreenshots.ScreenshotsControl
                 Width = 1330,
                 Height = 845,
                 WindowStyle = WindowStyle.None,
-                WindowState = WindowState.Maximized,
+                WindowState = UseCinematicExpandedExperience ? WindowState.Normal : WindowState.Maximized,
                 ResizeMode = ResizeMode.NoResize,
                 Background = new SolidColorBrush(Colors.Black),
                 Title = _currentGame.Name,
@@ -701,7 +849,15 @@ namespace SteamScreenshots.ScreenshotsControl
             }
 
             window.DataContext = screenshotsViewModel;
-            window.ShowDialog();
+            try
+            {
+                ConfigureExpandedWindow?.Invoke(window);
+                window.ShowDialog();
+            }
+            finally
+            {
+                window.Close();
+            }
             var index = _screenshots.IndexOf(screenshotsViewModel.LastDisplayedScreenshot);
             if (index != -1)
             {

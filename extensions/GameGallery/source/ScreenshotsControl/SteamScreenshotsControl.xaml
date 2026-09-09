@@ -15,7 +15,7 @@
 
         <DataTemplate x:Key="GalleryHorizontalTemplate">
             <Grid Background="Black">
-                <Image Source="{Binding ThumbnailImage}"
+                <Image Source="{Binding ThumbnailImage, IsAsync=True}"
                        RenderOptions.BitmapScalingMode="Fant"
                        Stretch="UniformToFill"
                        StretchDirection="Both"/>
@@ -37,6 +37,9 @@
         </DataTemplate>
 
         <Style TargetType="ListBox" x:Key="HorizontalScreenshotsLbStyle">
+            <Setter Property="ScrollViewer.CanContentScroll" Value="True" />
+            <Setter Property="VirtualizingStackPanel.IsVirtualizing" Value="True" />
+            <Setter Property="VirtualizingStackPanel.VirtualizationMode" Value="Recycling" />
             <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Disabled" />
             <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
             <Setter Property="BorderThickness" Value="0" />
@@ -44,7 +47,8 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBox">
-                        <ScrollViewer x:Name="ScreenshotsScrollViewer" VirtualizingStackPanel.IsVirtualizing="True"
+                        <ScrollViewer x:Name="ScreenshotsScrollViewer"
+                                      CanContentScroll="True"
                                       HorizontalScrollBarVisibility="Auto"
                                       VerticalScrollBarVisibility="Disabled"
                                       Padding="0,0,0,0"
@@ -57,7 +61,7 @@
             <Setter Property="ItemsPanel">
                 <Setter.Value>
                     <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal" />
+                            <VirtualizingStackPanel Orientation="Horizontal" />
                     </ItemsPanelTemplate>
                 </Setter.Value>
             </Setter>

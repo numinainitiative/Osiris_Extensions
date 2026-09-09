@@ -8,6 +8,78 @@
              d:DesignHeight="450" d:DesignWidth="800">
     <UserControl.Resources>
         <commonConverters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
+        <Style x:Key="GalleryNavigationButtonStyle" TargetType="{x:Type Button}">
+            <Setter Property="Height" Value="46" />
+            <Setter Property="MinWidth" Value="94" />
+            <Setter Property="Padding" Value="15,0" />
+            <Setter Property="Foreground" Value="#F0F1F7" />
+            <Setter Property="Background" Value="#FF151515" />
+            <Setter Property="BorderBrush" Value="#FF303238" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontSize" Value="17" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="Chrome"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="5">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#FF222327" />
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#FF555861" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#FF0C0C0D" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="GalleryCloseButtonStyle" TargetType="{x:Type Button}">
+            <Setter Property="Width" Value="46" />
+            <Setter Property="Height" Value="46" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Foreground" Value="#F0F1F7" />
+            <Setter Property="Background" Value="#D9111111" />
+            <Setter Property="BorderBrush" Value="#663C3F45" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="Chrome"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="23">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#F0222327" />
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#AA666A73" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#FF090909" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
     <Grid>
 
@@ -29,37 +101,81 @@
                HorizontalAlignment="Center"
                VerticalAlignment="Center"/>
 
-        <Border Background="#BF000000" Padding="10,5,10,5"
-                Margin="0,0,0,15"
-                CornerRadius="8"
+        <Viewbox x:Name="GalleryNavigationControls" Stretch="Uniform" StretchDirection="DownOnly"
+                 Margin="12,0,12,20" VerticalAlignment="Bottom" HorizontalAlignment="Center">
+        <Border Background="#E60A0A0B" Padding="6"
+                BorderBrush="#FF282A2F"
+                BorderThickness="1"
+                CornerRadius="6"
                 VerticalAlignment="Bottom" HorizontalAlignment="Center">
-            <StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <Button Command="{Binding BackCommand}"
+                        Style="{StaticResource GalleryNavigationButtonStyle}"
+                        Margin="0,0,12,0"
+                        Visibility="{Binding HasMultipleImages, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <StackPanel Orientation="Horizontal">
+                        <Viewbox Width="21" Height="21" Margin="0,0,8,0">
+                            <Canvas Width="24" Height="24">
+                                <Path Data="M 15,18 L 9,12 L 15,6"
+                                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                                      StrokeThickness="2"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round" />
+                            </Canvas>
+                        </Viewbox>
+                        <TextBlock Text="{DynamicResource LOC_SteamScreenshots_MoveBackLabel}"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
                 <TextBlock Text="{Binding ImagePositionLabel}"
-                           HorizontalAlignment="Center"/>
-                <StackPanel Orientation="Horizontal" Margin="0,10,0,0"
-                            HorizontalAlignment="Center">
-                    <Button Content="{DynamicResource LOC_SteamScreenshots_MoveBackLabel}"
-                            Command="{Binding BackCommand}" 
-                            Margin="0,0,2.5,0"
-                            Visibility="{Binding HasMultipleImages, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                    <Button Content="{DynamicResource LOC_SteamScreenshots_MoveNextLabel}"
-                            Command="{Binding NextCommand}" 
-                            Margin="2.5,0,0,0"
-                            Visibility="{Binding HasMultipleImages, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                </StackPanel>
+                           MinWidth="86"
+                           Margin="0,0,12,0"
+                           Foreground="#F0F1F7"
+                           FontSize="16"
+                           FontWeight="SemiBold"
+                           TextAlignment="Center"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"/>
+                <Button Command="{Binding NextCommand}"
+                        Style="{StaticResource GalleryNavigationButtonStyle}"
+                        Visibility="{Binding HasMultipleImages, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{DynamicResource LOC_SteamScreenshots_MoveNextLabel}"
+                                   VerticalAlignment="Center" />
+                        <Viewbox Width="21" Height="21" Margin="8,0,0,0">
+                            <Canvas Width="24" Height="24">
+                                <Path Data="M 9,18 L 15,12 L 9,6"
+                                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                                      StrokeThickness="2"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round" />
+                            </Canvas>
+                        </Viewbox>
+                    </StackPanel>
+                </Button>
             </StackPanel>
         </Border>
+        </Viewbox>
 
-        <Border Background="#BF000000" Padding="5"
-                Margin="0,15,15,15"
-                CornerRadius="8"
-                VerticalAlignment="Top" HorizontalAlignment="Right">
-            <Button Command="{Binding CloseWindowCommand}"
-                    VerticalAlignment="Center" HorizontalAlignment="Center">
-                <TextBlock Text="&#xEC4F;" FontFamily="{DynamicResource FontIcoFont}"
-                           FontSize="25" />
-            </Button>
-        </Border>
+        <Button x:Name="GalleryCloseButton" Command="{Binding CloseWindowCommand}"
+                ToolTip="Close gallery" AutomationProperties.Name="Close gallery"
+                Style="{StaticResource GalleryCloseButtonStyle}"
+                Margin="0,18,18,0"
+                VerticalAlignment="Top"
+                HorizontalAlignment="Right">
+            <Viewbox Width="22" Height="22">
+                <Canvas Width="24" Height="24">
+                    <Path Data="M 18,6 L 6,18 M 6,6 L 18,18"
+                          Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                          StrokeThickness="2.25"
+                          StrokeStartLineCap="Round"
+                          StrokeEndLineCap="Round"
+                          StrokeLineJoin="Round" />
+                </Canvas>
+            </Viewbox>
+        </Button>
     </Grid>
     
 </UserControl>

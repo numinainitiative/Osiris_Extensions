@@ -39,7 +39,7 @@ if ($entries.Count -gt 256) {
 
 $idPattern = '^[A-Za-z0-9.-]+_[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
 $hashPattern = '^[0-9a-fA-F]{64}$'
-$categories = @('Libraries', 'Metadata', 'Enhancements', 'Utilities')
+$categories = @('Libraries', 'Metadata', 'Extras', 'Utilities')
 $states = @('public', 'release-candidate', 'blocked-security-review', 'blocked-license-review', 'private-development')
 $ids = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
 $artifactsRoot = Join-Path $repositoryRoot "artifacts"

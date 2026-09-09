@@ -13,15 +13,23 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using TemporaryCache;
 
 namespace SteamScreenshots.Infrastructure.Providers
 {
     public class UrlImageProvider : IImageProvider
     {
+        private const int MaximumCachedImages = 24;
+        private const long MaximumCachedImageBytes = 8L * 1024L * 1024L;
+        private const long MemoryPressurePrivateBytes32Bit = 576L * 1024L * 1024L;
+        private const int NormalFullImageWidth = 1920;
+        private const int NormalFullImageHeight = 1080;
+        private const int ReducedFullImageWidth = 1280;
+        private const int ReducedFullImageHeight = 720;
         private readonly string _storageDirectory;
         private readonly ILogger _logger;
-        private static readonly CacheManager<string, BitmapImage> _imagesCacheManager = new CacheManager<string, BitmapImage>().WithItemLifetime(TimeSpan.FromSeconds(60));
+        private static readonly BoundedBitmapCache _imagesCacheManager =
+            new BoundedBitmapCache(MaximumCachedImages, MaximumCachedImageBytes, TimeSpan.FromSeconds(45));
+        private static readonly SemaphoreSlim[] DownloadGates = CreateDownloadGates();
         private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(30);
         private static readonly BitmapImage _fallbackImage = CreateTransparentFallbackImage();
 
@@ -33,78 +41,158 @@ namespace SteamScreenshots.Infrastructure.Providers
 
         public bool DownloadUriToStorage(string url, CancellationToken cancellationToken = default)
         {
+            var storagePath = GetUriStorageLocation(url);
+            var gate = GetDownloadGate(storagePath);
+            gate.Wait(cancellationToken);
             try
             {
-                var storagePath = GetUriStorageLocation(url);
-                if (FileSystem.FileExists(storagePath))
+                if (FileSystem.FileExists(storagePath) && new FileInfo(storagePath).Length > 0)
                 {
                     return true;
                 }
 
-                var tempStoragePath = storagePath + ".tmp";
-                var request = HttpRequestFactory.GetHttpFileRequest()
-                    .WithUrl(url)
-                    .WithDownloadTo(tempStoragePath)
-                    .WithTimeout(DefaultTimeout);
-
-                var result = request.DownloadFile(cancellationToken);
-                if (!result.IsSuccess)
+                for (var attempt = 0; attempt < 3; attempt++)
                 {
-                    // Clean up incomplete download
-                    FileSystem.DeleteFileSafe(tempStoragePath);
-                    return false;
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var tempStoragePath = storagePath + "." + Guid.NewGuid().ToString("N") + ".download";
+                    try
+                    {
+                        var request = HttpRequestFactory.GetHttpFileRequest()
+                            .WithUrl(url)
+                            .WithDownloadTo(tempStoragePath)
+                            .WithTimeout(DefaultTimeout);
+
+                        var result = request.DownloadFile(cancellationToken);
+                        if (result.IsSuccess && HasSupportedImageSignature(tempStoragePath))
+                        {
+                            FileSystem.DeleteFileSafe(storagePath);
+                            FileSystem.MoveFile(tempStoragePath, storagePath);
+                            return true;
+                        }
+                    }
+                    finally
+                    {
+                        FileSystem.DeleteFileSafe(tempStoragePath);
+                        FileSystem.DeleteFileSafe(tempStoragePath + ".tmp");
+                    }
+
+                    if (attempt < 2 && cancellationToken.WaitHandle.WaitOne(TimeSpan.FromMilliseconds(250 * (attempt + 1))))
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                    }
                 }
 
-                FileSystem.MoveFile(tempStoragePath, storagePath);
-                return true;
+                return false;
             }
             catch (OperationCanceledException)
             {
-                return false;
+                throw;
             }
             catch (Exception e)
             {
                 _logger.Error(e, $"Error downloading file: {url}");
                 return false;
             }
+            finally
+            {
+                gate.Release();
+            }
         }
 
-        public BitmapImage LoadImage(string url)
+        public BitmapImage LoadImage(string url, CancellationToken cancellationToken = default)
         {
-            return LoadImageInternal(url);
+            var underMemoryPressure = IsUnderMemoryPressure();
+            if (underMemoryPressure)
+            {
+                _imagesCacheManager.Clear();
+            }
+            return LoadImageInternal(
+                url,
+                underMemoryPressure ? ReducedFullImageWidth : NormalFullImageWidth,
+                underMemoryPressure ? ReducedFullImageHeight : NormalFullImageHeight,
+                cancellationToken,
+                false);
         }
 
-        public BitmapImage LoadImageWithDecodeMaxDimensions(string url, int decodeMaxWidth = 0, int decodeMaxHeight = 0)
+        public BitmapImage LoadImageWithDecodeMaxDimensions(
+            string url,
+            int decodeMaxWidth = 0,
+            int decodeMaxHeight = 0,
+            CancellationToken cancellationToken = default)
         {
-            return LoadImageInternal(url, decodeMaxWidth, decodeMaxHeight);
+            if (IsUnderMemoryPressure())
+            {
+                _imagesCacheManager.Clear();
+            }
+            return LoadImageInternal(url, decodeMaxWidth, decodeMaxHeight, cancellationToken, true);
         }
 
-        private BitmapImage LoadImageInternal(string url, int decodeMaxWidth = 0, int decodeMaxHeight = 0)
+        public BitmapImage LoadTransientImageWithDecodeMaxDimensions(
+            string url,
+            int decodeMaxWidth = 0,
+            int decodeMaxHeight = 0,
+            CancellationToken cancellationToken = default)
+        {
+            if (IsUnderMemoryPressure())
+            {
+                _imagesCacheManager.Clear();
+            }
+            return LoadImageInternal(url, decodeMaxWidth, decodeMaxHeight, cancellationToken, false);
+        }
+
+        private BitmapImage LoadImageInternal(
+            string url,
+            int decodeMaxWidth,
+            int decodeMaxHeight,
+            CancellationToken cancellationToken,
+            bool cacheDecodedImage)
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!string.IsNullOrEmpty(url) && File.Exists(url))
                 {
-                    return CreateResizedBitmapImageFromPath(url, decodeMaxWidth, decodeMaxHeight);
+                    return CreateResizedBitmapImageFromPath(
+                        url,
+                        decodeMaxWidth,
+                        decodeMaxHeight,
+                        cancellationToken,
+                        false) ?? GetFallbackImage();
                 }
 
                 var fileName = GetUriStorageFilename(url);
                 var storagePath = GetFilenameStorageLocation(fileName);
 
-                var bitmapImage = LoadImageFromStorage(url, storagePath, decodeMaxWidth, decodeMaxHeight);
+                var bitmapImage = LoadImageFromStorage(
+                    url,
+                    storagePath,
+                    decodeMaxWidth,
+                    decodeMaxHeight,
+                    cancellationToken,
+                    cacheDecodedImage);
                 return bitmapImage;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error loading image {url}: {ex.Message}");
+                _logger.Warn(ex, $"Error loading image {url}");
                 return GetFallbackImage();
             }
         }
 
-        private BitmapImage LoadImageFromStorage(string url, string storagePath, int decodeMaxWidth, int decodeMaxHeight)
+        private BitmapImage LoadImageFromStorage(
+            string url,
+            string storagePath,
+            int decodeMaxWidth,
+            int decodeMaxHeight,
+            CancellationToken cancellationToken,
+            bool cacheDecodedImage)
         {
             var key = $"{storagePath}_{decodeMaxWidth}_{decodeMaxHeight}";
-            if (_imagesCacheManager.TryGetValue(key, out var cachedImage))
+            if (cacheDecodedImage && _imagesCacheManager.TryGetValue(key, out var cachedImage))
             {
                 return cachedImage;
             }
@@ -123,22 +211,77 @@ namespace SteamScreenshots.Infrastructure.Providers
 
             if (shouldDownloadImage)
             {
-                var success = DownloadUriToStorage(url);
+                var success = DownloadUriToStorage(url, cancellationToken);
                 if (!success)
                 {
                     return GetFallbackImage();
                 }
             }
 
-            var bitmapImage = CreateResizedBitmapImageFromPath(storagePath, decodeMaxWidth, decodeMaxHeight);
-            _imagesCacheManager.Add(key, bitmapImage);
+            var bitmapImage = CreateResizedBitmapImageFromPath(
+                storagePath,
+                decodeMaxWidth,
+                decodeMaxHeight,
+                cancellationToken,
+                true);
+            if (bitmapImage == null)
+            {
+                // A non-empty cached response can still be truncated or HTML. Delete it
+                // and retry once in this same view rather than leaving a missing tile.
+                FileSystem.DeleteFileSafe(storagePath);
+                if (!DownloadUriToStorage(url, cancellationToken))
+                {
+                    return GetFallbackImage();
+                }
+
+                bitmapImage = CreateResizedBitmapImageFromPath(
+                    storagePath,
+                    decodeMaxWidth,
+                    decodeMaxHeight,
+                    cancellationToken,
+                    true);
+            }
+            if (bitmapImage == null)
+            {
+                return GetFallbackImage();
+            }
+            if (cacheDecodedImage)
+            {
+                _imagesCacheManager.Add(key, bitmapImage);
+            }
             return bitmapImage;
         }
 
-        private static BitmapImage CreateResizedBitmapImageFromPath(string filePath, int decodeMaxWidth, int decodeMaxHeight)
+        private static bool IsUnderMemoryPressure()
+        {
+            if (Environment.Is64BitProcess)
+            {
+                return false;
+            }
+
+            try
+            {
+                using (var process = System.Diagnostics.Process.GetCurrentProcess())
+                {
+                    return process.PrivateMemorySize64 >= MemoryPressurePrivateBytes32Bit;
+                }
+            }
+            catch
+            {
+                return true;
+            }
+        }
+
+        private static BitmapImage CreateResizedBitmapImageFromPath(
+            string filePath,
+            int decodeMaxWidth,
+            int decodeMaxHeight,
+            CancellationToken cancellationToken,
+            bool deleteInvalidFile)
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!FileSystem.FileExists(filePath))
                 {
                     throw new FileNotFoundException("File does not exist at path.", filePath);
@@ -146,24 +289,35 @@ namespace SteamScreenshots.Infrastructure.Providers
 
                 using (var fileStream = FileSystem.OpenReadFileStreamSafe(filePath))
                 {
-                    using (MemoryStream memoryStream = new MemoryStream())
-                    {
-                        fileStream.CopyTo(memoryStream);
-                        memoryStream.Seek(0, SeekOrigin.Begin);
-                        return GetBitmapImageFromBufferedStream(memoryStream, decodeMaxWidth, decodeMaxHeight);
-                    }
+                    return GetBitmapImageFromBufferedStream(
+                        fileStream,
+                        decodeMaxWidth,
+                        decodeMaxHeight,
+                        cancellationToken);
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error creating BitmapImage from path: {filePath} - {ex.Message}");
-                FileSystem.DeleteFileSafe(filePath);
-                return GetFallbackImage();
+                if (deleteInvalidFile)
+                {
+                    FileSystem.DeleteFileSafe(filePath);
+                }
+                return null;
             }
         }
 
-        private static BitmapImage GetBitmapImageFromBufferedStream(Stream stream, int decodeMaxWidth, int decodeMaxHeight)
+        private static BitmapImage GetBitmapImageFromBufferedStream(
+            Stream stream,
+            int decodeMaxWidth,
+            int decodeMaxHeight,
+            CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var bitmapImage = new BitmapImage();
             bitmapImage.BeginInit();
             bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
@@ -202,12 +356,63 @@ namespace SteamScreenshots.Infrastructure.Providers
             }
 
             stream.Seek(0, SeekOrigin.Begin);
+            cancellationToken.ThrowIfCancellationRequested();
             bitmapImage.StreamSource = stream;
             bitmapImage.CreateOptions = BitmapCreateOptions.PreservePixelFormat;
             bitmapImage.EndInit();
             bitmapImage.Freeze();
 
             return bitmapImage;
+        }
+
+        private static SemaphoreSlim[] CreateDownloadGates()
+        {
+            var gates = new SemaphoreSlim[16];
+            for (var index = 0; index < gates.Length; index++)
+            {
+                gates[index] = new SemaphoreSlim(1, 1);
+            }
+
+            return gates;
+        }
+
+        private static SemaphoreSlim GetDownloadGate(string path)
+        {
+            var hash = StringComparer.OrdinalIgnoreCase.GetHashCode(path ?? string.Empty) & int.MaxValue;
+            return DownloadGates[hash % DownloadGates.Length];
+        }
+
+        private static bool HasSupportedImageSignature(string path)
+        {
+            try
+            {
+                using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    if (stream.Length < 12)
+                    {
+                        return false;
+                    }
+
+                    var header = new byte[12];
+                    if (stream.Read(header, 0, header.Length) != header.Length)
+                    {
+                        return false;
+                    }
+
+                    return
+                        (header[0] == 0xFF && header[1] == 0xD8) ||
+                        (header[0] == 0x89 && header[1] == 0x50 && header[2] == 0x4E && header[3] == 0x47) ||
+                        (header[0] == (byte)'G' && header[1] == (byte)'I' && header[2] == (byte)'F') ||
+                        (header[0] == (byte)'B' && header[1] == (byte)'M') ||
+                        (header[0] == (byte)'R' && header[1] == (byte)'I' && header[2] == (byte)'F' &&
+                         header[3] == (byte)'F' && header[8] == (byte)'W' && header[9] == (byte)'E' &&
+                         header[10] == (byte)'B' && header[11] == (byte)'P');
+                }
+            }
+            catch
+            {
+                return false;
+            }
         }
 
 
@@ -293,6 +498,138 @@ namespace SteamScreenshots.Infrastructure.Providers
             }
 
             return bitmapImage;
+        }
+
+        private sealed class BoundedBitmapCache
+        {
+            private readonly object _syncRoot = new object();
+            private readonly Dictionary<string, CacheEntry> _entries =
+                new Dictionary<string, CacheEntry>(StringComparer.OrdinalIgnoreCase);
+            private readonly LinkedList<string> _leastRecentlyUsed = new LinkedList<string>();
+            private readonly int _maximumItems;
+            private readonly long _maximumBytes;
+            private readonly TimeSpan _entryLifetime;
+            private long _cachedBytes;
+
+            public BoundedBitmapCache(int maximumItems, long maximumBytes, TimeSpan entryLifetime)
+            {
+                _maximumItems = maximumItems;
+                _maximumBytes = maximumBytes;
+                _entryLifetime = entryLifetime;
+            }
+
+            public bool TryGetValue(string key, out BitmapImage image)
+            {
+                lock (_syncRoot)
+                {
+                    if (!_entries.TryGetValue(key, out var entry))
+                    {
+                        image = null;
+                        return false;
+                    }
+
+                    if (DateTime.UtcNow - entry.LastAccessUtc > _entryLifetime)
+                    {
+                        RemoveEntry(entry);
+                        image = null;
+                        return false;
+                    }
+
+                    entry.LastAccessUtc = DateTime.UtcNow;
+                    _leastRecentlyUsed.Remove(entry.Node);
+                    _leastRecentlyUsed.AddLast(entry.Node);
+                    image = entry.Image;
+                    return true;
+                }
+            }
+
+            public void Add(string key, BitmapImage image)
+            {
+                if (image == null)
+                {
+                    return;
+                }
+
+                var imageBytes = EstimateImageBytes(image);
+                if (imageBytes <= 0 || imageBytes > _maximumBytes)
+                {
+                    return;
+                }
+
+                lock (_syncRoot)
+                {
+                    if (_entries.TryGetValue(key, out var existingEntry))
+                    {
+                        RemoveEntry(existingEntry);
+                    }
+
+                    var node = new LinkedListNode<string>(key);
+                    var entry = new CacheEntry(image, imageBytes, DateTime.UtcNow, node);
+                    _entries.Add(key, entry);
+                    _leastRecentlyUsed.AddLast(node);
+                    _cachedBytes += imageBytes;
+
+                    while (_entries.Count > _maximumItems || _cachedBytes > _maximumBytes)
+                    {
+                        var oldestNode = _leastRecentlyUsed.First;
+                        if (oldestNode == null || !_entries.TryGetValue(oldestNode.Value, out var oldestEntry))
+                        {
+                            break;
+                        }
+
+                        RemoveEntry(oldestEntry);
+                    }
+                }
+            }
+
+            public void Clear()
+            {
+                lock (_syncRoot)
+                {
+                    _entries.Clear();
+                    _leastRecentlyUsed.Clear();
+                    _cachedBytes = 0;
+                }
+            }
+
+            private void RemoveEntry(CacheEntry entry)
+            {
+                _entries.Remove(entry.Node.Value);
+                _leastRecentlyUsed.Remove(entry.Node);
+                _cachedBytes -= entry.Bytes;
+            }
+
+            private static long EstimateImageBytes(BitmapImage image)
+            {
+                try
+                {
+                    return checked((long)image.PixelWidth * image.PixelHeight * 4L);
+                }
+                catch (OverflowException)
+                {
+                    return long.MaxValue;
+                }
+            }
+
+            private sealed class CacheEntry
+            {
+                public CacheEntry(
+                    BitmapImage image,
+                    long bytes,
+                    DateTime lastAccessUtc,
+                    LinkedListNode<string> node)
+                {
+                    Image = image;
+                    Bytes = bytes;
+                    LastAccessUtc = lastAccessUtc;
+                    Node = node;
+                }
+
+                public BitmapImage Image { get; }
+                public long Bytes { get; }
+                public DateTime LastAccessUtc { get; set; }
+                public LinkedListNode<string> Node { get; }
+            }
         }
 
 

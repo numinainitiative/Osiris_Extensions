@@ -39,6 +39,6 @@ Before publishing an extension:
 5. Enable the global catalog only after the repository and every public release
    URL are anonymously accessible.
 
-Published versions are monotonic. Game Gallery remains `2.0.1` and Steam
+Published versions are monotonic. Game Gallery remains `2.0.2` and Steam
 Library remains `1.0.1`; resetting them to `1.0` would break update ordering for
 existing installations.

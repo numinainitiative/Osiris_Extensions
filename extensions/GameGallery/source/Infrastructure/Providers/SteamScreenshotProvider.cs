@@ -46,7 +46,9 @@ namespace SteamScreenshots.Infrastructure.Providers
                 .Select(movie => new TrailerData(
                     movie.Name,
                     movie.Thumbnail?.ToString(),
-                    (movie.Webm?.Max ?? movie.Webm?.Q480 ?? movie.Mp4?.Max ?? movie.Mp4?.Q480)?.ToString()
+                    (movie.Webm?.Max ?? movie.Webm?.Q480 ??
+                     movie.Mp4?.Max ?? movie.Mp4?.Q480 ??
+                     movie.HlsH264 ?? movie.DashH264)?.ToString()
                         ?? $"https://cdn.cloudflare.steamstatic.com/steam/apps/{movie.Id}/movie_max.webm"))
                 .Where(trailer => !trailer.VideoUrl.IsNullOrEmpty())
                 .ToList();
