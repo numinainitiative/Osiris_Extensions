@@ -22,6 +22,25 @@
       "upstream": "https://github.com/darklinkpower/PlayniteExtensionsCollection"
     },
     {
+      "id": "HowLongToBeat_fba3e63d-d1a1-4b9d-91c6-091a1220377d",
+      "name": "HowLongToBeat",
+      "description": "View estimated completion times for games in your library.",
+      "author": "Osiris",
+      "category": "Extras",
+      "tags": ["Extras"],
+      "version": "1.0.0",
+      "releaseDate": "2026-09-10T18:37:54+02:00",
+      "distribution": "public",
+      "installFolder": "Extras\\HowLongToBeat_fba3e63d-d1a1-4b9d-91c6-091a1220377d",
+      "releaseTag": "howlongtobeat-v1.0.0",
+      "packageUrl": "https://github.com/numinainitiative/Osiris_Extensions/releases/download/howlongtobeat-v1.0.0/HowLongToBeat_1.0.0.pext",
+      "sha256": "b9f2b43f0278523434be7303c2ade82b429b1ec284a6da777cbdbfd801cc725a",
+      "size": 32479,
+      "iconUrl": "https://raw.githubusercontent.com/numinainitiative/Osiris_Extensions/main/catalog/icons/howlongtobeat.png",
+      "ownership": "original-clean-room",
+      "upstream": "https://howlongtobeat.com/"
+    },
+    {
       "id": "SteamLibrary_cb91dfc9-b977-43bf-8e70-55f46e410fab",
       "name": "Steam Library",
       "description": "Import and manage games from your Steam library.",

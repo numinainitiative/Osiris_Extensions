@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+  <PropertyGroup>
+    <AssemblyName>Osiris.HowLongToBeat</AssemblyName>
+    <RootNamespace>Osiris.Extensions.HowLongToBeat</RootNamespace>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <UseWPF>True</UseWPF>
+    <TargetFramework>net462</TargetFramework>
+    <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
+    <LangVersion>latest</LangVersion>
+    <OsirisDevelopmentRoot Condition="'$(OsirisDevelopmentRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\..\Programming\Development\Osiris</OsirisDevelopmentRoot>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>None</DebugType>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Update="extension.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="icon.png" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Playnite.SDK">
+      <HintPath>$(OsirisDevelopmentRoot)\App\Playnite.SDK.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>$(OsirisDevelopmentRoot)\App\Newtonsoft.Json.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="WindowsBase" />
+  </ItemGroup>
+</Project>

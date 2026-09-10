@@ -23,9 +23,7 @@ assets.
 - `build/Test-ExtensionCatalog.ps1`: catalog, checksum, and package validator.
 - `docs/`: recovery, provenance, licensing, and release notes.
 
-HowLongToBeat is third-party software and remains linked to its original author.
-It will not be republished by Numina Initiative without an explicit license and
-redistribution review.
+HowLongToBeat is maintained as an original, clean-room Osiris extension.
 
 ## Release gate
 
