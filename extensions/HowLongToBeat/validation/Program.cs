@@ -63,6 +63,13 @@ internal static class Program
                !cardView.Contains("#3F4249") &&
                !cardView.Contains("#454850"),
             "The card should use transparent icon frames and a compact neutral-grey striped track with a flat partial-fill edge and sealed full state.");
+        Expect(cardView.Contains("<StackPanel x:Name=\"ResultPanel\" Background=\"#000000\">") &&
+               cardView.Contains("x:Name=\"MainStoryRow\"") &&
+               cardView.Contains("x:Name=\"MainExtraRow\"") &&
+               cardView.Split(new[] { "Background=\"#090909\"" }, StringSplitOptions.None).Length - 1 == 2 &&
+               cardView.Contains("x:Name=\"CompletionistRow\" Style=\"{StaticResource TimeRow}\" Margin=\"0\"") &&
+               cardView.Contains("<Setter Property=\"Background\" Value=\"#101010\" />"),
+            "The first two rows should match the Overview background, the separators should be black, and Completionist should retain its existing background.");
         var bookIcon = File.ReadAllText(Path.Combine(extensionRoot, "source", "Icons", "book-open-check.svg"));
         var pickaxeIcon = File.ReadAllText(Path.Combine(extensionRoot, "source", "Icons", "pickaxe.svg"));
         var trophyIcon = File.ReadAllText(Path.Combine(extensionRoot, "source", "Icons", "trophy.svg"));

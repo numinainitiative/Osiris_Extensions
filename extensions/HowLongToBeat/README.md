@@ -28,7 +28,7 @@ no account integration, telemetry, or third-party runtime dependencies.
 ## Identity
 
 - ID: `HowLongToBeat_fba3e63d-d1a1-4b9d-91c6-091a1220377d`
-- Version: `1.1.0`
+- Version: `1.1.2`
 - Author: `Osiris`
 - Type: `GenericPlugin`
 - Category: `Extras`

@@ -110,8 +110,10 @@
     </PluginUserControl.Resources>
 
     <Grid>
-        <StackPanel x:Name="ResultPanel">
-            <Border x:Name="MainStoryRow" Style="{StaticResource TimeRow}">
+        <StackPanel x:Name="ResultPanel" Background="#000000">
+            <Border x:Name="MainStoryRow"
+                    Style="{StaticResource TimeRow}"
+                    Background="#090909">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="60" />
@@ -138,7 +140,9 @@
                 </Grid>
             </Border>
 
-            <Border x:Name="MainExtraRow" Style="{StaticResource TimeRow}">
+            <Border x:Name="MainExtraRow"
+                    Style="{StaticResource TimeRow}"
+                    Background="#090909">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="60" />
