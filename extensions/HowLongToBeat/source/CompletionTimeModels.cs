@@ -16,9 +16,117 @@ namespace Osiris.Extensions.HowLongToBeat
         public long MainStorySeconds { get; set; }
         public long MainExtraSeconds { get; set; }
         public long CompletionistSeconds { get; set; }
+        public long MainStoryRushedSeconds { get; set; }
+        public long MainStoryAverageSeconds { get; set; }
+        public long MainStoryMedianSeconds { get; set; }
+        public long MainStoryLeisureSeconds { get; set; }
+        public long MainExtraRushedSeconds { get; set; }
+        public long MainExtraAverageSeconds { get; set; }
+        public long MainExtraMedianSeconds { get; set; }
+        public long MainExtraLeisureSeconds { get; set; }
+        public long CompletionistRushedSeconds { get; set; }
+        public long CompletionistAverageSeconds { get; set; }
+        public long CompletionistMedianSeconds { get; set; }
+        public long CompletionistLeisureSeconds { get; set; }
         public DateTime FetchedUtc { get; set; }
 
-        public bool HasAnyTime => MainStorySeconds > 0 || MainExtraSeconds > 0 || CompletionistSeconds > 0;
+        public bool HasAnyTime => MainStorySeconds > 0 || MainExtraSeconds > 0 || CompletionistSeconds > 0 ||
+                                  HasDetailedProfiles;
+
+        public bool HasDetailedProfiles =>
+            MainStoryRushedSeconds > 0 || MainStoryAverageSeconds > 0 ||
+            MainStoryMedianSeconds > 0 || MainStoryLeisureSeconds > 0 ||
+            MainExtraRushedSeconds > 0 || MainExtraAverageSeconds > 0 ||
+            MainExtraMedianSeconds > 0 || MainExtraLeisureSeconds > 0 ||
+            CompletionistRushedSeconds > 0 || CompletionistAverageSeconds > 0 ||
+            CompletionistMedianSeconds > 0 || CompletionistLeisureSeconds > 0;
+
+        public long GetMainStorySeconds(string profile)
+        {
+            if (string.Equals(profile, CompletionTimeProfiles.Rushed, StringComparison.Ordinal))
+            {
+                return MainStoryRushedSeconds;
+            }
+
+            if (string.Equals(profile, CompletionTimeProfiles.Median, StringComparison.Ordinal))
+            {
+                return MainStoryMedianSeconds;
+            }
+
+            if (string.Equals(profile, CompletionTimeProfiles.Leisure, StringComparison.Ordinal))
+            {
+                return MainStoryLeisureSeconds;
+            }
+
+            return MainStoryAverageSeconds > 0 ? MainStoryAverageSeconds : MainStorySeconds;
+        }
+
+        public long GetMainExtraSeconds(string profile)
+        {
+            if (string.Equals(profile, CompletionTimeProfiles.Rushed, StringComparison.Ordinal))
+            {
+                return MainExtraRushedSeconds;
+            }
+
+            if (string.Equals(profile, CompletionTimeProfiles.Median, StringComparison.Ordinal))
+            {
+                return MainExtraMedianSeconds;
+            }
+
+            if (string.Equals(profile, CompletionTimeProfiles.Leisure, StringComparison.Ordinal))
+            {
+                return MainExtraLeisureSeconds;
+            }
+
+            return MainExtraAverageSeconds > 0 ? MainExtraAverageSeconds : MainExtraSeconds;
+        }
+
+        public long GetCompletionistSeconds(string profile)
+        {
+            if (string.Equals(profile, CompletionTimeProfiles.Rushed, StringComparison.Ordinal))
+            {
+                return CompletionistRushedSeconds;
+            }
+
+            if (string.Equals(profile, CompletionTimeProfiles.Median, StringComparison.Ordinal))
+            {
+                return CompletionistMedianSeconds;
+            }
+
+            if (string.Equals(profile, CompletionTimeProfiles.Leisure, StringComparison.Ordinal))
+            {
+                return CompletionistLeisureSeconds;
+            }
+
+            return CompletionistAverageSeconds > 0 ? CompletionistAverageSeconds : CompletionistSeconds;
+        }
+
+        public bool HasProfile(string profile)
+        {
+            return GetMainStorySeconds(profile) > 0 ||
+                   GetMainExtraSeconds(profile) > 0 ||
+                   GetCompletionistSeconds(profile) > 0;
+        }
+
+        public bool HasSameTimesAs(CompletionTimeResult other)
+        {
+            return other != null &&
+                   MainStorySeconds == other.MainStorySeconds &&
+                   MainExtraSeconds == other.MainExtraSeconds &&
+                   CompletionistSeconds == other.CompletionistSeconds &&
+                   MainStoryRushedSeconds == other.MainStoryRushedSeconds &&
+                   MainStoryAverageSeconds == other.MainStoryAverageSeconds &&
+                   MainStoryMedianSeconds == other.MainStoryMedianSeconds &&
+                   MainStoryLeisureSeconds == other.MainStoryLeisureSeconds &&
+                   MainExtraRushedSeconds == other.MainExtraRushedSeconds &&
+                   MainExtraAverageSeconds == other.MainExtraAverageSeconds &&
+                   MainExtraMedianSeconds == other.MainExtraMedianSeconds &&
+                   MainExtraLeisureSeconds == other.MainExtraLeisureSeconds &&
+                   CompletionistRushedSeconds == other.CompletionistRushedSeconds &&
+                   CompletionistAverageSeconds == other.CompletionistAverageSeconds &&
+                   CompletionistMedianSeconds == other.CompletionistMedianSeconds &&
+                   CompletionistLeisureSeconds == other.CompletionistLeisureSeconds;
+        }
 
         public CompletionTimeResult Clone()
         {
@@ -37,13 +145,19 @@ namespace Osiris.Extensions.HowLongToBeat
     {
         public bool Enabled { get; set; } = true;
         public CompletionTimeResult ManualResult { get; set; }
+        public CompletionTimeResult AutomaticResult { get; set; }
+        public string AutomaticGameName { get; set; }
+        public int? AutomaticReleaseYear { get; set; }
 
         public CompletionTimeGameSettings Clone()
         {
             return new CompletionTimeGameSettings
             {
                 Enabled = Enabled,
-                ManualResult = ManualResult?.Clone()
+                ManualResult = ManualResult?.Clone(),
+                AutomaticResult = AutomaticResult?.Clone(),
+                AutomaticGameName = AutomaticGameName,
+                AutomaticReleaseYear = AutomaticReleaseYear
             };
         }
     }
@@ -73,6 +187,16 @@ namespace Osiris.Extensions.HowLongToBeat
                 CompletionistSeconds = token.Value<long?>("comp_100") ?? 0
             };
         }
+    }
+
+    internal sealed class CompletionDatabaseUpdateSummary
+    {
+        public int LibraryGames { get; set; }
+        public int CheckedGames { get; set; }
+        public int UpdatedGames { get; set; }
+        public int UnchangedGames { get; set; }
+        public int FailedGames { get; set; }
+        public int SkippedGames => Math.Max(0, LibraryGames - CheckedGames);
     }
 
     internal static class CompletionTimeMatching
@@ -169,6 +293,16 @@ namespace Osiris.Extensions.HowLongToBeat
 
             var hours = Math.Max(1, (int)Math.Round(seconds / 3600d, MidpointRounding.AwayFromZero));
             return hours == 1 ? "1 Hour" : $"{hours} Hours";
+        }
+
+        public static double ProgressPercent(ulong playedSeconds, long targetSeconds)
+        {
+            if (playedSeconds == 0 || targetSeconds <= 0)
+            {
+                return 0;
+            }
+
+            return Math.Min(100d, playedSeconds * 100d / targetSeconds);
         }
     }
 }

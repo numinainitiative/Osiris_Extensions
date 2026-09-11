@@ -52,6 +52,52 @@ namespace Osiris.Extensions.HowLongToBeat
             SettingsChanged?.Invoke(gameId);
         }
 
+        public void StoreFetchedResult(
+            Guid gameId,
+            bool isManual,
+            string gameName,
+            int? releaseYear,
+            CompletionTimeResult result,
+            bool notify)
+        {
+            if (result == null)
+            {
+                throw new ArgumentNullException(nameof(result));
+            }
+
+            lock (syncRoot)
+            {
+                CompletionTimeGameSettings settings;
+                if (!settingsByGame.TryGetValue(gameId.ToString("D"), out settings) || settings == null)
+                {
+                    settings = new CompletionTimeGameSettings();
+                }
+                else
+                {
+                    settings = settings.Clone();
+                }
+
+                if (isManual)
+                {
+                    settings.ManualResult = result.Clone();
+                }
+                else
+                {
+                    settings.AutomaticResult = result.Clone();
+                    settings.AutomaticGameName = gameName;
+                    settings.AutomaticReleaseYear = releaseYear;
+                }
+
+                settingsByGame[gameId.ToString("D")] = settings;
+                SaveAll();
+            }
+
+            if (notify)
+            {
+                SettingsChanged?.Invoke(gameId);
+            }
+        }
+
         private Dictionary<string, CompletionTimeGameSettings> LoadAll()
         {
             try

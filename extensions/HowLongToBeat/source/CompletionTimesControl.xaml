@@ -3,69 +3,195 @@
                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                    Focusable="False">
     <PluginUserControl.Resources>
-        <Style x:Key="TimeLabel" TargetType="TextBlock">
+        <DrawingBrush x:Key="EmptyProgressTrackBrush"
+                      TileMode="Tile"
+                      Viewport="0,0,10,10"
+                      ViewportUnits="Absolute"
+                      Viewbox="0,0,10,10"
+                      ViewboxUnits="Absolute">
+            <DrawingBrush.Drawing>
+                <DrawingGroup>
+                    <GeometryDrawing Brush="#171717">
+                        <GeometryDrawing.Geometry>
+                            <RectangleGeometry Rect="0,0,10,10" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="#4A4A4A"
+                                     Geometry="M0,10 L4,10 10,0 6,0 Z" />
+                </DrawingGroup>
+            </DrawingBrush.Drawing>
+        </DrawingBrush>
+
+        <Style x:Key="TimeTitle" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="Rajdhani" />
-            <Setter Property="FontSize" Value="17" />
+            <Setter Property="FontSize" Value="18" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="#626262" />
+            <Setter Property="Foreground" Value="#F0F1F7" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
             <Setter Property="TextOptions.TextRenderingMode" Value="ClearType" />
         </Style>
-        <Style x:Key="TimeValue" TargetType="TextBlock" BasedOn="{StaticResource TimeLabel}">
+        <Style x:Key="TimeValue" TargetType="TextBlock" BasedOn="{StaticResource TimeTitle}">
+            <Setter Property="FontSize" Value="21" />
             <Setter Property="Foreground" Value="#F2F2F2" />
             <Setter Property="HorizontalAlignment" Value="Right" />
             <Setter Property="TextAlignment" Value="Right" />
         </Style>
+        <Style x:Key="TimeProfileLabel" TargetType="TextBlock" BasedOn="{StaticResource TimeTitle}">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="Foreground" Value="#777A82" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+        </Style>
         <Style x:Key="TimeRow" TargetType="Border">
             <Setter Property="Background" Value="#101010" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="14,13" />
-            <Setter Property="Margin" Value="0,0,0,6" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="Padding" Value="20,15" />
+            <Setter Property="Margin" Value="0,0,0,8" />
         </Style>
-        <Style x:Key="CompletionistLabel" TargetType="TextBlock" BasedOn="{StaticResource TimeLabel}">
-            <Setter Property="Foreground" Value="#070707" />
+        <Style x:Key="TimeIconFrame" TargetType="Border">
+            <Setter Property="Width" Value="60" />
+            <Setter Property="Height" Value="60" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="#AFAFAF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="7" />
+            <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
-        <Style x:Key="CompletionistValue" TargetType="TextBlock" BasedOn="{StaticResource TimeValue}">
-            <Setter Property="Foreground" Value="#070707" />
+        <Style x:Key="TimeIconPath" TargetType="Path">
+            <Setter Property="Stroke" Value="#D5D7DC" />
+            <Setter Property="StrokeThickness" Value="2" />
+            <Setter Property="StrokeStartLineCap" Value="Round" />
+            <Setter Property="StrokeEndLineCap" Value="Round" />
+            <Setter Property="StrokeLineJoin" Value="Round" />
+            <Setter Property="Stretch" Value="None" />
+            <Setter Property="Width" Value="24" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+        </Style>
+        <Style x:Key="PlayedProgress" TargetType="ProgressBar">
+            <Setter Property="Height" Value="10" />
+            <Setter Property="Minimum" Value="0" />
+            <Setter Property="Maximum" Value="100" />
+            <Setter Property="Margin" Value="0,8,0,0" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ProgressBar}">
+                        <Grid x:Name="PART_Track"
+                              Height="{TemplateBinding Height}"
+                              ClipToBounds="True"
+                              SnapsToDevicePixels="True">
+                            <Border Background="{StaticResource EmptyProgressTrackBrush}"
+                                    RenderOptions.EdgeMode="Aliased"
+                                    SnapsToDevicePixels="True"
+                                    CornerRadius="5" />
+                            <Border x:Name="PART_Indicator"
+                                    HorizontalAlignment="Left"
+                                    Background="#F4F5F8"
+                                    CornerRadius="5,0,0,5" />
+                            <Border BorderBrush="#626262"
+                                    BorderThickness="1"
+                                    CornerRadius="5"
+                                    IsHitTestVisible="False" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Value" Value="100">
+                                <Setter TargetName="PART_Indicator"
+                                        Property="CornerRadius"
+                                        Value="5" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </PluginUserControl.Resources>
 
     <Grid>
         <StackPanel x:Name="ResultPanel">
-            <Border Style="{StaticResource TimeRow}">
+            <Border x:Name="MainStoryRow" Style="{StaticResource TimeRow}">
                 <Grid>
                     <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="60" />
+                        <ColumnDefinition Width="20" />
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="22" />
+                        <ColumnDefinition Width="170" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock Text="MAIN STORY" Style="{StaticResource TimeLabel}" />
-                    <TextBlock Grid.Column="1" Text="{Binding MainStoryText}" Style="{StaticResource TimeValue}" />
+                    <Border Style="{StaticResource TimeIconFrame}">
+                        <Viewbox Width="30" Height="30">
+                            <!-- Exact geometry from the supplied Icons/book-open-check.svg. -->
+                            <Path Data="M12,5 V21 M16,12 L18,14 22,10 M22,6 V5 A2,2 0 0 0 20.001,3 L16,3.002 A5,5 0 0 0 12,5 A5,5 0 0 0 8,3 H4 A2,2 0 0 0 2,5 V17 A2,2 0 0 0 3.999,19 H8 A5,5 0 0 1 12,21 A5,5 0 0 1 16,19 H20.001 A2,2 0 0 0 22,17 V15.656"
+                                  Style="{StaticResource TimeIconPath}" />
+                        </Viewbox>
+                    </Border>
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                        <TextBlock Text="Main Story" Style="{StaticResource TimeTitle}" />
+                        <TextBlock Text="{Binding TimeProfileText}" Style="{StaticResource TimeProfileLabel}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="4" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding MainStoryText}" Style="{StaticResource TimeValue}" />
+                        <ProgressBar Value="{Binding MainStoryProgress, Mode=OneWay}" Style="{StaticResource PlayedProgress}" />
+                    </StackPanel>
                 </Grid>
             </Border>
-            <Border Style="{StaticResource TimeRow}" Background="#292929">
+
+            <Border x:Name="MainExtraRow" Style="{StaticResource TimeRow}">
                 <Grid>
                     <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="60" />
+                        <ColumnDefinition Width="20" />
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="22" />
+                        <ColumnDefinition Width="170" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock Text="MAIN + EXTRAS" Style="{StaticResource TimeLabel}" />
-                    <TextBlock Grid.Column="1" Text="{Binding MainExtraText}" Style="{StaticResource TimeValue}" />
+                    <Border Style="{StaticResource TimeIconFrame}">
+                        <Viewbox Width="30" Height="30">
+                            <!-- Exact geometry from the supplied Icons/pickaxe.svg. -->
+                            <Path Data="M14,13 L5.619,21.38 A1,1 0 0 1 2.618,18.38 L11,9.999 M15.973,4.027 A13,13 0 0 0 5.902,2.373 C4.504,2.715 4.81,4.531 6.179,4.974 A19.9,19.9 0 0 1 12.001,7.998 M16.001,11.999 A19.9,19.9 0 0 1 19.025,17.823 C19.469,19.192 21.285,19.499 21.628,18.101 A13,13 0 0 0 20,8.069 M18.352,3.352 A1.205,1.205 0 0 0 16.648,3.352 L11.352,8.648 A1.205,1.205 0 0 0 11.352,10.352 L13.648,12.648 A1.205,1.205 0 0 0 15.352,12.648 L20.648,7.352 A1.205,1.205 0 0 0 20.648,5.648 Z"
+                                  Style="{StaticResource TimeIconPath}" />
+                        </Viewbox>
+                    </Border>
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                        <TextBlock Text="Main + Extras" Style="{StaticResource TimeTitle}" />
+                        <TextBlock Text="{Binding TimeProfileText}" Style="{StaticResource TimeProfileLabel}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="4" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding MainExtraText}" Style="{StaticResource TimeValue}" />
+                        <ProgressBar Value="{Binding MainExtraProgress, Mode=OneWay}" Style="{StaticResource PlayedProgress}" />
+                    </StackPanel>
                 </Grid>
             </Border>
-            <Border Style="{StaticResource TimeRow}"
-                    Margin="0"
-                    Background="#858B94"
-                    CornerRadius="0,0,12,12">
+
+            <Border x:Name="CompletionistRow" Style="{StaticResource TimeRow}" Margin="0">
                 <Grid>
                     <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="60" />
+                        <ColumnDefinition Width="20" />
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="22" />
+                        <ColumnDefinition Width="170" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock Text="COMPLETIONIST" Style="{StaticResource CompletionistLabel}" />
-                    <TextBlock Grid.Column="1" Text="{Binding CompletionistText}" Style="{StaticResource CompletionistValue}" />
+                    <Border Style="{StaticResource TimeIconFrame}">
+                        <Viewbox Width="30" Height="30">
+                            <!-- Exact geometry from the supplied Icons/trophy.svg. -->
+                            <Path Data="M10,14.66 V17 A1,1 0 0 1 9,18 A2,2 0 0 0 7,20 V22 M14,14.66 V17 A1,1 0 0 0 15,18 A2,2 0 0 1 17,20 V22 M17.916,10 H19.5 A2.5,2.5 0 0 0 22,7.5 V5 A1,1 0 0 0 21,4 H18 M4,22 H20 M6,9 A6,6 0 0 0 18,9 V3 A1,1 0 0 0 17,2 H7 A1,1 0 0 0 6,3 Z M6.084,10 H4.5 A2.5,2.5 0 0 1 2,7.5 V5 A1,1 0 0 1 3,4 H6"
+                                  Style="{StaticResource TimeIconPath}" />
+                        </Viewbox>
+                    </Border>
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                        <TextBlock Text="Completionist" Style="{StaticResource TimeTitle}" />
+                        <TextBlock Text="{Binding TimeProfileText}" Style="{StaticResource TimeProfileLabel}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="4" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding CompletionistText}" Style="{StaticResource TimeValue}" />
+                        <ProgressBar Value="{Binding CompletionistProgress, Mode=OneWay}" Style="{StaticResource PlayedProgress}" />
+                    </StackPanel>
                 </Grid>
             </Border>
+
             <StackPanel.Style>
                 <Style TargetType="StackPanel">
                     <Setter Property="Visibility" Value="Visible" />

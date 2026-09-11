@@ -29,8 +29,14 @@ namespace Osiris.Extensions.HowLongToBeat
                     return false;
                 }
 
-                var lifetime = record.Result.Found ? TimeSpan.FromDays(30) : TimeSpan.FromDays(1);
-                if (requireFresh && DateTime.UtcNow - record.Result.FetchedUtc > lifetime)
+                // Successful estimates are durable user data. Once downloaded,
+                // they remain available indefinitely and are replaced only by
+                // an explicit per-game rematch or another deliberate change.
+                // Empty searches retain a short lifetime so a game can be found
+                // later if HLTB adds it.
+                if (requireFresh &&
+                    !record.Result.Found &&
+                    DateTime.UtcNow - record.Result.FetchedUtc > TimeSpan.FromDays(1))
                 {
                     result = null;
                     return false;

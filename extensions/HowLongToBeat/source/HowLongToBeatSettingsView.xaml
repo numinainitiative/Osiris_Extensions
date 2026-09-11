@@ -6,6 +6,170 @@
              Background="Transparent">
     <TabControl HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch">
+        <TabItem Header="General">
+            <Grid Width="760"
+                  MaxWidth="760"
+                  HorizontalAlignment="Left"
+                  VerticalAlignment="Top">
+                <StackPanel Width="760" HorizontalAlignment="Left">
+                    <TextBlock Text="Completion times"
+                               Foreground="#F0F1F7"
+                               FontFamily="{DynamicResource FontFamily}"
+                               FontSize="20"
+                               FontWeight="SemiBold" />
+                    <TextBlock Text="Choose which HowLongToBeat estimate is used on game details."
+                               MaxWidth="720"
+                               Margin="0,5,0,20"
+                               HorizontalAlignment="Left"
+                               Foreground="#777A82"
+                               FontFamily="{DynamicResource FontFamily}"
+                               FontSize="15"
+                               FontWeight="SemiBold"
+                               TextWrapping="Wrap" />
+
+                    <Grid Width="760" Height="54" HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="18" />
+                            <ColumnDefinition Width="190" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Text="Time profile"
+                                   VerticalAlignment="Center"
+                                   Foreground="#F0F1F7"
+                                   FontFamily="{DynamicResource FontFamily}"
+                                   FontSize="17"
+                                   FontWeight="SemiBold" />
+                        <ComboBox Grid.Column="2"
+                                  Width="190"
+                                  Height="38"
+                                  SelectedValue="{Binding TimeProfile, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                  SelectedValuePath="Tag">
+                            <ComboBoxItem Content="Rushed" Tag="Rushed" />
+                            <ComboBoxItem Content="Average" Tag="Average" />
+                            <ComboBoxItem Content="Median" Tag="Median" />
+                            <ComboBoxItem Content="Leisure" Tag="Leisure" />
+                        </ComboBox>
+                    </Grid>
+
+                    <TextBlock Text="Displayed times"
+                               Margin="0,28,0,8"
+                               Foreground="#F0F1F7"
+                               FontFamily="{DynamicResource FontFamily}"
+                               FontSize="20"
+                               FontWeight="SemiBold" />
+                    <TextBlock Text="Choose any combination of completion estimates to show on each game's How Long to Beat card."
+                               MaxWidth="720"
+                               Margin="0,0,0,10"
+                               Foreground="#777A82"
+                               FontFamily="{DynamicResource FontFamily}"
+                               FontSize="15"
+                               FontWeight="SemiBold"
+                               TextWrapping="Wrap" />
+
+                    <Grid Width="760" HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="56" />
+                            <ColumnDefinition Width="704" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="68" />
+                            <RowDefinition Height="68" />
+                            <RowDefinition Height="68" />
+                        </Grid.RowDefinitions>
+
+                        <CheckBox Grid.Row="0" Grid.Column="0"
+                                  Width="44" Height="24"
+                                  IsChecked="{Binding ShowMainStory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <StackPanel Grid.Row="0" Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="Main Story"
+                                       Foreground="#F0F1F7"
+                                       FontFamily="{DynamicResource FontFamily}"
+                                       FontSize="17"
+                                       FontWeight="SemiBold" />
+                            <TextBlock Text="Show the estimated time required to finish the main objectives."
+                                       Foreground="#777A82"
+                                       FontFamily="{DynamicResource FontFamily}"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <CheckBox Grid.Row="1" Grid.Column="0"
+                                  Width="44" Height="24"
+                                  IsChecked="{Binding ShowMainExtras, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <StackPanel Grid.Row="1" Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="Main + Extras"
+                                       Foreground="#F0F1F7"
+                                       FontFamily="{DynamicResource FontFamily}"
+                                       FontSize="17"
+                                       FontWeight="SemiBold" />
+                            <TextBlock Text="Show the estimated time for the main objectives plus optional content."
+                                       Foreground="#777A82"
+                                       FontFamily="{DynamicResource FontFamily}"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <CheckBox Grid.Row="2" Grid.Column="0"
+                                  Width="44" Height="24"
+                                  IsChecked="{Binding ShowCompletionist, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <StackPanel Grid.Row="2" Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="Completionist"
+                                       Foreground="#F0F1F7"
+                                       FontFamily="{DynamicResource FontFamily}"
+                                       FontSize="17"
+                                       FontWeight="SemiBold" />
+                            <TextBlock Text="Show the estimated time required to complete everything."
+                                       Foreground="#777A82"
+                                       FontFamily="{DynamicResource FontFamily}"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Grid>
+
+                    <StackPanel Width="760"
+                                Margin="0,28,0,0"
+                                HorizontalAlignment="Left">
+                        <TextBlock Text="Update Database"
+                                   Foreground="#F0F1F7"
+                                   FontFamily="{DynamicResource FontFamily}"
+                                   FontSize="17"
+                                   FontWeight="SemiBold" />
+                        <TextBlock Text="Check every fetched game against its exact saved HowLongToBeat match. Unfetched games and your chosen matches are never changed."
+                                   MaxWidth="720"
+                                   Margin="0,6,0,0"
+                                   HorizontalAlignment="Left"
+                                   Foreground="#777A82"
+                                   FontFamily="{DynamicResource FontFamily}"
+                                   FontSize="15"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap" />
+                        <Button x:Name="UpdateDatabaseButton"
+                                Content="Update Database"
+                                Height="38"
+                                Margin="0,12,0,0"
+                                Padding="18,0"
+                                HorizontalAlignment="Left"
+                                IsEnabled="{Binding CanUpdateDatabase}"
+                                Click="OnUpdateDatabaseClick" />
+                        <TextBlock x:Name="DatabaseUpdateStatus"
+                                   Text="{Binding DatabaseUpdateStatus}"
+                                   MaxWidth="720"
+                                   Margin="0,12,0,0"
+                                   HorizontalAlignment="Left"
+                                   Foreground="#777A82"
+                                   FontFamily="{DynamicResource FontFamily}"
+                                   FontSize="15"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+        </TabItem>
         <TabItem Header="Danger Zone">
             <Grid HorizontalAlignment="Stretch"
                   VerticalAlignment="Top" />

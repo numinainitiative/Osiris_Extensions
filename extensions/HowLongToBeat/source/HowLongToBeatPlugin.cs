@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Controls;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -31,7 +32,8 @@ namespace Osiris.Extensions.HowLongToBeat
             var userDataPath = GetPluginUserDataPath();
             cache = new CompletionTimeCache(userDataPath);
             gameSettingsStore = new CompletionTimeGameSettingsStore(userDataPath);
-            settings = new HowLongToBeatSettings();
+            settings = LoadPluginSettings<HowLongToBeatSettings>() ?? new HowLongToBeatSettings();
+            settings.Attach(this);
 
             AddCustomElementSupport(new AddCustomElementSupportArgs
             {
@@ -43,8 +45,168 @@ namespace Osiris.Extensions.HowLongToBeat
         public override Control GetGameViewControl(GetGameViewControlArgs args)
         {
             return args.Name == ControlName
-                ? new CompletionTimesControl(client, cache, gameSettingsStore)
+                ? new CompletionTimesControl(client, cache, gameSettingsStore, settings)
                 : null;
+        }
+
+        internal async Task<CompletionDatabaseUpdateSummary> UpdateStoredDatabaseAsync(
+            IProgress<string> progress,
+            CancellationToken cancellationToken)
+        {
+            var games = PlayniteApi.Database.Games.ToList();
+            var matches = new List<StoredCompletionMatch>();
+            foreach (var game in games)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var releaseYear = game.ReleaseDate?.Year;
+                var gameSettings = gameSettingsStore.Load(game.Id);
+                var isManual = gameSettings.ManualResult?.Found == true &&
+                               gameSettings.ManualResult.RemoteGameId > 0;
+                var storedResult = isManual
+                    ? gameSettings.ManualResult.Clone()
+                    : gameSettings.AutomaticResult?.Clone();
+                var needsEmbedding = !isManual && storedResult == null;
+
+                CompletionTimeResult cachedResult;
+                cache.TryGet(game.Name, releaseYear, false, out cachedResult);
+                if (isManual)
+                {
+                    if (cachedResult?.Found == true &&
+                        cachedResult.RemoteGameId == storedResult.RemoteGameId &&
+                        cachedResult.HasDetailedProfiles)
+                    {
+                        storedResult = cachedResult;
+                    }
+                }
+                else if (storedResult == null)
+                {
+                    storedResult = cachedResult;
+                }
+
+                if (storedResult?.Found != true || storedResult.RemoteGameId <= 0)
+                {
+                    continue;
+                }
+
+                matches.Add(new StoredCompletionMatch
+                {
+                    GameId = game.Id,
+                    GameName = game.Name,
+                    ReleaseYear = releaseYear,
+                    IsManual = isManual,
+                    NeedsEmbedding = needsEmbedding,
+                    StoredResult = storedResult
+                });
+            }
+
+            var summary = new CompletionDatabaseUpdateSummary
+            {
+                LibraryGames = games.Count,
+                CheckedGames = matches.Count
+            };
+            var refreshedById = new Dictionary<long, CompletionTimeResult>();
+            var failedIds = new HashSet<long>();
+
+            for (var index = 0; index < matches.Count; index++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var match = matches[index];
+                progress?.Report(
+                    $"Checking {index + 1} of {matches.Count}: {match.GameName}");
+
+                CompletionTimeResult refreshedResult;
+                if (!refreshedById.TryGetValue(match.StoredResult.RemoteGameId, out refreshedResult) &&
+                    !failedIds.Contains(match.StoredResult.RemoteGameId))
+                {
+                    try
+                    {
+                        refreshedResult = await client.GetDetailsAsync(
+                            match.StoredResult.RemoteGameId,
+                            cancellationToken).ConfigureAwait(true);
+                        if (refreshedResult?.Found == true)
+                        {
+                            refreshedById[match.StoredResult.RemoteGameId] = refreshedResult;
+                        }
+                        else
+                        {
+                            failedIds.Add(match.StoredResult.RemoteGameId);
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
+                    catch
+                    {
+                        failedIds.Add(match.StoredResult.RemoteGameId);
+                    }
+                }
+
+                if (refreshedResult?.Found != true)
+                {
+                    summary.FailedGames++;
+                    continue;
+                }
+
+                var replacement = refreshedResult.Clone();
+                replacement.RemoteGameId = match.StoredResult.RemoteGameId;
+                replacement.MatchedName = string.IsNullOrWhiteSpace(match.StoredResult.MatchedName)
+                    ? replacement.MatchedName
+                    : match.StoredResult.MatchedName;
+                if (match.StoredResult.HasSameTimesAs(replacement))
+                {
+                    if (match.NeedsEmbedding)
+                    {
+                        try
+                        {
+                            gameSettingsStore.StoreFetchedResult(
+                                match.GameId,
+                                false,
+                                match.GameName,
+                                match.ReleaseYear,
+                                replacement,
+                                false);
+                        }
+                        catch
+                        {
+                            summary.FailedGames++;
+                            continue;
+                        }
+                    }
+
+                    summary.UnchangedGames++;
+                    continue;
+                }
+
+                try
+                {
+                    cache.Store(match.GameName, match.ReleaseYear, replacement);
+                    gameSettingsStore.StoreFetchedResult(
+                        match.GameId,
+                        match.IsManual,
+                        match.GameName,
+                        match.ReleaseYear,
+                        replacement,
+                        true);
+                    summary.UpdatedGames++;
+                }
+                catch
+                {
+                    summary.FailedGames++;
+                }
+            }
+
+            return summary;
+        }
+
+        private sealed class StoredCompletionMatch
+        {
+            public Guid GameId { get; set; }
+            public string GameName { get; set; }
+            public int? ReleaseYear { get; set; }
+            public bool IsManual { get; set; }
+            public bool NeedsEmbedding { get; set; }
+            public CompletionTimeResult StoredResult { get; set; }
         }
 
         public string GetGameSettingsForOsiris(string gameId)
@@ -125,10 +287,14 @@ namespace Osiris.Extensions.HowLongToBeat
                 }
             }
 
+            var existingSettings = gameSettingsStore.Load(parsedGameId);
             gameSettingsStore.Save(parsedGameId, new CompletionTimeGameSettings
             {
                 Enabled = document.Value<bool?>("enabled") ?? true,
-                ManualResult = manualResult
+                ManualResult = manualResult,
+                AutomaticResult = existingSettings.AutomaticResult?.Clone(),
+                AutomaticGameName = existingSettings.AutomaticGameName,
+                AutomaticReleaseYear = existingSettings.AutomaticReleaseYear
             });
         }
 

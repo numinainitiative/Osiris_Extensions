@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -15,6 +16,9 @@ namespace Osiris.Extensions.HowLongToBeat
     {
         private const string SiteRoot = "https://howlongtobeat.com/";
         private const string SearchEndpoint = "https://howlongtobeat.com/api/search/site";
+        private static readonly Regex NextDataPattern = new Regex(
+            "<script[^>]+id=[\\\"']__NEXT_DATA__[\\\"'][^>]*>(?<json>.*?)</script>",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
         private readonly HttpClient httpClient;
         private readonly SemaphoreSlim requestGate = new SemaphoreSlim(1, 1);
 
@@ -53,7 +57,100 @@ namespace Osiris.Extensions.HowLongToBeat
                 };
             }
 
-            return ToResult(best);
+            var summary = ToResult(best);
+            try
+            {
+                var details = await GetDetailsAsync(best.GameId, cancellationToken).ConfigureAwait(false);
+                return details?.Found == true ? details : summary;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch
+            {
+                return summary;
+            }
+        }
+
+        internal async Task<CompletionTimeResult> GetDetailsAsync(long gameId, CancellationToken cancellationToken)
+        {
+            if (gameId <= 0)
+            {
+                return null;
+            }
+
+            await requestGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                using (var response = await httpClient.GetAsync(
+                    SiteRoot + "game/" + gameId,
+                    cancellationToken).ConfigureAwait(false))
+                {
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        throw new HttpRequestException($"Completion-time details failed ({(int)response.StatusCode}).");
+                    }
+
+                    var html = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    return ParseDetailPage(html, gameId);
+                }
+            }
+            finally
+            {
+                requestGate.Release();
+            }
+        }
+
+        internal static CompletionTimeResult ParseDetailPage(string html, long requestedGameId)
+        {
+            var match = NextDataPattern.Match(html ?? string.Empty);
+            if (!match.Success)
+            {
+                throw new InvalidOperationException("The completion-time details page did not contain game data.");
+            }
+
+            var document = JObject.Parse(WebUtility.HtmlDecode(match.Groups["json"].Value));
+            var game = document.SelectToken("props.pageProps.game.data.game[0]") as JObject;
+            if (game == null)
+            {
+                throw new InvalidOperationException("The completion-time details response did not contain a game record.");
+            }
+
+            var result = new CompletionTimeResult
+            {
+                Found = true,
+                RemoteGameId = game.Value<long?>("game_id") ?? requestedGameId,
+                MatchedName = game.Value<string>("game_name") ?? string.Empty,
+                MainStorySeconds = Positive(game, "comp_main"),
+                MainExtraSeconds = Positive(game, "comp_plus"),
+                CompletionistSeconds = Positive(game, "comp_100"),
+                MainStoryRushedSeconds = Positive(game, "comp_main_l"),
+                MainStoryAverageSeconds = Positive(game, "comp_main_avg"),
+                MainStoryMedianSeconds = Positive(game, "comp_main_med"),
+                MainStoryLeisureSeconds = Positive(game, "comp_main_h"),
+                MainExtraRushedSeconds = Positive(game, "comp_plus_l"),
+                MainExtraAverageSeconds = Positive(game, "comp_plus_avg"),
+                MainExtraMedianSeconds = Positive(game, "comp_plus_med"),
+                MainExtraLeisureSeconds = Positive(game, "comp_plus_h"),
+                CompletionistRushedSeconds = Positive(game, "comp_100_l"),
+                CompletionistAverageSeconds = Positive(game, "comp_100_avg"),
+                CompletionistMedianSeconds = Positive(game, "comp_100_med"),
+                CompletionistLeisureSeconds = Positive(game, "comp_100_h"),
+                FetchedUtc = DateTime.UtcNow
+            };
+
+            if (!result.HasAnyTime)
+            {
+                throw new InvalidOperationException("The completion-time details response contained no estimates.");
+            }
+
+            return result;
+        }
+
+        private static long Positive(JObject source, string propertyName)
+        {
+            return Math.Max(0, source.Value<long?>(propertyName) ?? 0);
         }
 
         internal async Task<List<SearchCandidate>> SearchCandidatesAsync(string gameName, CancellationToken cancellationToken)
