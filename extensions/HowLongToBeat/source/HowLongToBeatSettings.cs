@@ -117,21 +117,38 @@ namespace Osiris.Extensions.HowLongToBeat
 
             IsDatabaseUpdateRunning = true;
             DatabaseUpdateStatus = "Preparing stored HowLongToBeat matches...";
+            var footerProgress = OsirisFooterUpdateProgress.TryStart(
+                "Updating How Long To Beat database",
+                DatabaseUpdateStatus);
+            var cancellationToken = footerProgress?.CancellationToken ?? CancellationToken.None;
             try
             {
-                var progress = new Progress<string>(message => DatabaseUpdateStatus = message);
+                var progress = new Progress<string>(message =>
+                {
+                    DatabaseUpdateStatus = message;
+                    footerProgress?.Report(
+                        "Updating How Long To Beat database",
+                        message);
+                });
                 var summary = await plugin.UpdateStoredDatabaseAsync(
                     progress,
-                    CancellationToken.None);
+                    cancellationToken);
                 DatabaseUpdateStatus = summary.CheckedGames == 0
                     ? $"No fetched matches were found. {summary.LibraryGames} library games were left untouched."
                     : $"Checked {summary.CheckedGames} fetched games: " +
                       $"{summary.UpdatedGames} updated, {summary.UnchangedGames} unchanged, " +
                       $"{summary.FailedGames} failed. {summary.SkippedGames} unfetched games were untouched.";
+                footerProgress?.Complete("All tasks are now completed");
+            }
+            catch (OperationCanceledException)
+            {
+                DatabaseUpdateStatus = "Database update cancelled.";
+                footerProgress?.Cancel();
             }
             catch (Exception exception)
             {
                 DatabaseUpdateStatus = "Database update stopped: " + exception.Message;
+                footerProgress?.Complete("How Long To Beat database update failed");
             }
             finally
             {

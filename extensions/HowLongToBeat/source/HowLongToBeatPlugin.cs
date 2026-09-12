@@ -19,6 +19,7 @@ namespace Osiris.Extensions.HowLongToBeat
         private readonly CompletionTimeCache cache;
         private readonly CompletionTimeGameSettingsStore gameSettingsStore;
         private readonly HowLongToBeatSettings settings;
+        private readonly HowLongToBeatGlobalPageSidebarItem globalPage;
 
         public override Guid Id { get; } = Guid.Parse("fba3e63d-d1a1-4b9d-91c6-091a1220377d");
 
@@ -34,6 +35,11 @@ namespace Osiris.Extensions.HowLongToBeat
             gameSettingsStore = new CompletionTimeGameSettingsStore(userDataPath);
             settings = LoadPluginSettings<HowLongToBeatSettings>() ?? new HowLongToBeatSettings();
             settings.Attach(this);
+            globalPage = new HowLongToBeatGlobalPageSidebarItem(
+                api,
+                cache,
+                gameSettingsStore,
+                settings);
 
             AddCustomElementSupport(new AddCustomElementSupportArgs
             {
@@ -47,6 +53,11 @@ namespace Osiris.Extensions.HowLongToBeat
             return args.Name == ControlName
                 ? new CompletionTimesControl(client, cache, gameSettingsStore, settings)
                 : null;
+        }
+
+        public override IEnumerable<SidebarItem> GetSidebarItems()
+        {
+            yield return globalPage;
         }
 
         internal async Task<CompletionDatabaseUpdateSummary> UpdateStoredDatabaseAsync(

@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using Osiris.Extensions.HowLongToBeat;
 
 internal static class Program
@@ -46,6 +48,22 @@ internal static class Program
             AppDomain.CurrentDomain.BaseDirectory,
             "..", "..", "..", ".."));
         var cardView = File.ReadAllText(Path.Combine(extensionRoot, "source", "CompletionTimesControl.xaml"));
+        var globalPageView = File.ReadAllText(Path.Combine(
+            extensionRoot,
+            "source",
+            "HowLongToBeatGlobalPageControl.xaml"));
+        var globalPageCode = File.ReadAllText(Path.Combine(
+            extensionRoot,
+            "source",
+            "HowLongToBeatGlobalPageControl.cs"));
+        var settingsCode = File.ReadAllText(Path.Combine(
+            extensionRoot,
+            "source",
+            "HowLongToBeatSettings.cs"));
+        var footerProgressCode = File.ReadAllText(Path.Combine(
+            extensionRoot,
+            "source",
+            "OsirisFooterUpdateProgress.cs"));
         Expect(cardView.Contains("<Setter Property=\"CornerRadius\" Value=\"0\" />") &&
                cardView.Contains("<Setter Property=\"Height\" Value=\"10\" />") &&
                cardView.Contains("<ColumnDefinition Width=\"170\" />") &&
@@ -143,6 +161,225 @@ internal static class Program
             "General settings should expose the Update Database action.");
         Expect(settingsView.FindName("DatabaseUpdateStatus") is TextBlock,
             "General settings should expose database update progress and results.");
+        Expect(settingsCode.Contains("OsirisFooterUpdateProgress.TryStart") &&
+               settingsCode.Contains("footerProgress?.CancellationToken") &&
+               settingsCode.Contains("footerProgress?.Report") &&
+               settingsCode.Contains("footerProgress?.Complete(\"All tasks are now completed\")") &&
+               settingsCode.Contains("footerProgress?.Cancel()") &&
+               footerProgressCode.Contains("OsirisTheme.OsirisUpdateActions") &&
+               footerProgressCode.Contains("BeginFooterUpdateProcess") &&
+               footerProgressCode.Contains("ShowFooterUpdateProgress") &&
+               footerProgressCode.Contains("CompleteFooterUpdateProcess") &&
+               footerProgressCode.Contains("ShowFooterUpdateCancelled") &&
+               !footerProgressCode.Contains("ActivateGlobalProgress"),
+            "Database updates should use Osiris's cancellable bottom-panel progress surface instead of a modal dialog.");
+
+        var globalPage = new HowLongToBeatGlobalPageSidebarItem();
+        var globalView = globalPage.Opened?.Invoke() as HowLongToBeatGlobalPageControl;
+        var globalViewLayout = globalView?.Content as Grid;
+        var globalViewHeader = globalViewLayout?.Children
+            .OfType<FrameworkElement>()
+            .FirstOrDefault(element => Grid.GetRow(element) == 0);
+        Expect(globalPage.OsirisGlobalPage &&
+               globalPage.Type == Playnite.SDK.Plugins.SiderbarItemType.View &&
+               string.Equals(globalPage.Title, "How Long To Beat", StringComparison.Ordinal) &&
+               globalView != null,
+            "HowLongToBeat should opt into the Osiris extension-page list with its own global view.");
+        Expect(globalViewLayout != null &&
+               globalViewLayout.RowDefinitions.Count == 2 &&
+               globalViewLayout.RowDefinitions[0].Height.IsAbsolute &&
+               Math.Abs(globalViewLayout.RowDefinitions[0].Height.Value - 76) < 0.01 &&
+               Math.Abs(globalViewLayout.RowDefinitions[0].MinHeight - 76) < 0.01 &&
+               Math.Abs(globalViewLayout.RowDefinitions[0].MaxHeight - 76) < 0.01,
+            "The global page should reserve a fixed 76 px row above its independently sized content area.");
+        Expect(globalViewHeader != null &&
+               globalViewHeader.Visibility == Visibility.Visible &&
+               Math.Abs(globalViewHeader.MinHeight - 76) < 0.01 &&
+               Math.Abs(globalViewHeader.MaxHeight - 76) < 0.01,
+            "The global page header should remain fixed and visible while the page is open.");
+        var globalGamesGrid = globalView?.FindName("GamesGrid") as DataGrid;
+        Expect(globalGamesGrid != null &&
+               !globalGamesGrid.AutoGenerateColumns &&
+               globalGamesGrid.Columns.Count == 3 &&
+               globalGamesGrid.EnableRowVirtualization &&
+               globalGamesGrid.EnableColumnVirtualization,
+            "The global page should expose a virtualized three-column game library.");
+        Expect(globalGamesGrid.Columns[0].Header as string == "ICON" &&
+               globalGamesGrid.Columns[1].Header as string == "GAME" &&
+               globalGamesGrid.Columns[2].Header as string == "HOW LONG TO BEAT",
+            "The global library should contain only Icon, Game, and How Long To Beat columns.");
+        var sortByCombo = globalView?.FindName("SortByCombo") as ComboBox;
+        var showOnlyPlayedToggle = globalView?.FindName("ShowOnlyPlayedToggle") as CheckBox;
+        var globalUpdateDatabaseButton = globalView?.FindName("UpdateDatabaseButton") as Button;
+        var headerGutterFill = globalView?.FindName("HeaderGutterFill") as Border;
+        Expect(sortByCombo != null &&
+               sortByCombo.Items.Count == 3 &&
+               string.Equals(((ComboBoxItem)sortByCombo.Items[0]).Content as string, "Title", StringComparison.Ordinal) &&
+               string.Equals(((ComboBoxItem)sortByCombo.Items[1]).Content as string, "Time Played", StringComparison.Ordinal) &&
+               string.Equals(((ComboBoxItem)sortByCombo.Items[2]).Content as string, "Longest Completion", StringComparison.Ordinal) &&
+               showOnlyPlayedToggle != null,
+            "The HLTB toolbar should expose Title, Time Played, and Longest Completion sorting beside a played-games switch.");
+        Expect(globalUpdateDatabaseButton != null &&
+               string.Equals(globalUpdateDatabaseButton.Content as string, "Update Database", StringComparison.Ordinal) &&
+               !globalUpdateDatabaseButton.IsEnabled &&
+               globalPageView.Contains("x:Key=\"OsirisActionButtonStyle\"") &&
+               globalPageView.Contains("Style=\"{StaticResource OsirisActionButtonStyle}\"") &&
+               globalPageView.Contains("<Setter Property=\"Background\" Value=\"#111111\" />") &&
+               globalPageView.Contains("<Setter Property=\"BorderBrush\" Value=\"#252525\" />") &&
+               globalPageView.Contains("CornerRadius=\"7\"") &&
+               globalPageView.Contains("TargetName=\"ActionBackground\" Property=\"Background\" Value=\"#171717\"") &&
+               globalPageView.Contains("TargetName=\"ActionBackground\" Property=\"Background\" Value=\"#1A1A1A\"") &&
+               globalPageCode.Contains("await settings.UpdateDatabaseAsync()") &&
+               globalPageCode.Contains("nameof(HowLongToBeatSettings.CanUpdateDatabase)"),
+            "The global toolbar should reuse the exact Osiris action-button treatment and the settings database-update operation.");
+        Expect(globalPageView.Contains("Margin=\"52,23,52,0\"") &&
+               globalPageView.Contains("<RowDefinition Height=\"84\" />") &&
+               globalPageView.Contains("Margin=\"28,0,28,28\"") &&
+               globalPageView.Contains("CornerRadius=\"0\"") &&
+               globalPageView.Contains("CanUserSortColumns=\"False\"") &&
+               headerGutterFill != null &&
+               globalPageCode.Contains("scrollBar?.ActualWidth ?? 0"),
+            "The rectangular table should sit beneath a Library-aligned toolbar and close its live scrollbar header gutter.");
+        var bindingRow = new HowLongToBeatGameRow(
+            new Playnite.SDK.Models.Game
+            {
+                Id = Guid.Parse("8bf41f44-2c57-4b45-8d41-c7dcd341e407"),
+                Name = "Binding Test",
+                Playtime = 3600
+            },
+            null,
+            "osiris.png",
+            CompletionTimeProfiles.Average,
+            10L * 3600,
+            20L * 3600,
+            30L * 3600);
+        globalGamesGrid.ItemsSource = new[] { bindingRow };
+        globalView.Measure(new Size(1200, 700));
+        globalView.Arrange(new Rect(0, 0, 1200, 700));
+        globalView.UpdateLayout();
+        Dispatcher.CurrentDispatcher.Invoke(DispatcherPriority.DataBind, new Action(() => { }));
+        Expect(globalGamesGrid.Items.Count == 1 &&
+               bindingRow.PlayedTimeText == "1 Hour" &&
+               bindingRow.FallbackIconPath == "osiris.png" &&
+               bindingRow.GameId == Guid.Parse("8bf41f44-2c57-4b45-8d41-c7dcd341e407") &&
+               bindingRow.SourceGame != null,
+            "The rendered grid row should bind read-only local playtime without a TwoWay binding fault.");
+        var validationRows = globalView.GamesView.SourceCollection as
+            System.Collections.ObjectModel.ObservableCollection<HowLongToBeatGameRow>;
+        var alphaRow = new HowLongToBeatGameRow(
+            new Playnite.SDK.Models.Game { Name = "Alpha", Playtime = 0 },
+            null, "osiris.png", CompletionTimeProfiles.Average,
+            10L * 3600, 15L * 3600, 20L * 3600);
+        var betaRow = new HowLongToBeatGameRow(
+            new Playnite.SDK.Models.Game { Name = "Beta", Playtime = 2UL * 3600 },
+            null, "osiris.png", CompletionTimeProfiles.Average,
+            5L * 3600, 8L * 3600, 10L * 3600);
+        var gammaRow = new HowLongToBeatGameRow(
+            new Playnite.SDK.Models.Game { Name = "Gamma", Playtime = 1UL * 3600 },
+            null, "osiris.png", CompletionTimeProfiles.Average,
+            10L * 3600, 20L * 3600, 30L * 3600);
+        validationRows.Clear();
+        validationRows.Add(alphaRow);
+        validationRows.Add(betaRow);
+        validationRows.Add(gammaRow);
+        globalGamesGrid.ItemsSource = globalView.GamesView;
+        sortByCombo.SelectedIndex = 1;
+        var timePlayedOrder = globalView.GamesView.Cast<HowLongToBeatGameRow>().ToList();
+        sortByCombo.SelectedIndex = 2;
+        var longestOrder = globalView.GamesView.Cast<HowLongToBeatGameRow>().ToList();
+        sortByCombo.SelectedIndex = 0;
+        var titleOrder = globalView.GamesView.Cast<HowLongToBeatGameRow>().ToList();
+        showOnlyPlayedToggle.IsChecked = true;
+        var playedRows = globalView.GamesView.Cast<HowLongToBeatGameRow>().ToList();
+        Expect(timePlayedOrder.SequenceEqual(new[] { betaRow, gammaRow, alphaRow }) &&
+               longestOrder.SequenceEqual(new[] { gammaRow, alphaRow, betaRow }) &&
+               titleOrder.SequenceEqual(new[] { alphaRow, betaRow, gammaRow }),
+            "Every HLTB toolbar sort option should apply the expected deterministic row ordering.");
+        Expect(playedRows.SequenceEqual(new[] { betaRow, gammaRow }) &&
+               playedRows.All(row => row.PlayedSeconds > 0),
+            "Show only played games should remove every zero-playtime row without changing stored data.");
+        showOnlyPlayedToggle.IsChecked = false;
+        Expect(globalPageView.Contains("PlayedSeconds=\"{Binding PlayedSeconds}\"") &&
+               globalPageView.Contains("MainStorySeconds=\"{Binding MainStorySeconds}\"") &&
+               globalPageView.Contains("MainExtraSeconds=\"{Binding MainExtraSeconds}\"") &&
+               globalPageView.Contains("CompletionistSeconds=\"{Binding CompletionistSeconds}\"") &&
+               globalPageView.Contains("VirtualizingPanel.VirtualizationMode=\"Recycling\""),
+            "Each virtualized row should bind local playtime and all three stored completion milestones to one timeline.");
+        Expect(globalPageView.Contains("<Setter Property=\"Height\" Value=\"94\" />") &&
+               globalPageView.Contains("<Run Text=\"Time Played&#xA0;\"") &&
+               globalPageView.Contains("Text=\"{Binding PlayedTimeText, Mode=OneWay}\""),
+            "Taller global-page rows should show local played time beneath every game title.");
+        Expect(globalPageView.Contains("Header=\"GAME\"") &&
+               globalPageView.Contains("Width=\"270\"") &&
+               globalPageView.Contains("MinWidth=\"185\""),
+            "The Game column should leave more horizontal space for the HLTB timeline.");
+        Expect(globalPageView.Contains("Style=\"{StaticResource GameTitleButton}\"") &&
+               globalPageView.Contains("Click=\"OnGameTitleClick\"") &&
+               globalPageCode.Contains("OsirisTheme.HeaderNavigation") &&
+               globalPageCode.Contains("ExecuteSwitchDetailsCommand") &&
+               globalPageCode.Contains("api.MainView.ActiveDesktopView = DesktopView.Details"),
+            "Each game title should explicitly navigate to that game's Osiris Details page.");
+        Expect(globalPageView.Contains("Source=\"{Binding FallbackIconPath}\"") &&
+               globalPageView.Contains("<DataTrigger Binding=\"{Binding IconPath}\" Value=\"{x:Null}\">") &&
+               !globalPageView.Contains("Text=\"{Binding Initial}\"") &&
+               globalPageCode.Contains("Path.Combine(imageRoot, \"applogo.png\")"),
+            "Only games without a local icon should render the real Osiris fallback mark.");
+        var timelineCode = File.ReadAllText(Path.Combine(
+            extensionRoot,
+            "source",
+            "HowLongToBeatTimeline.cs"));
+        Expect(timelineCode.Contains("CreateVerticalPatternBrush") &&
+               timelineCode.Contains("MainExtraPatternBrush = CreateDiagonalPatternBrush()") &&
+               timelineCode.Contains("CompletionistPatternBrush = EmptyTrackBrush") &&
+               timelineCode.Contains("Geometry.Parse(\"M0,10 L4,10 10,0 6,0 Z\")") &&
+               timelineCode.Contains("DrawCompletionistStripes") &&
+               timelineCode.Contains("x += CompletionistStripeSpacing") &&
+               timelineCode.Contains("segment.Top - CompletionistStripeOverscan") &&
+               timelineCode.Contains("segment.Bottom + CompletionistStripeOverscan") &&
+               timelineCode.Contains("segment.Height + (CompletionistStripeOverscan * 2)") &&
+               timelineCode.Contains("StartLineCap = PenLineCap.Flat") &&
+               timelineCode.Contains("EndLineCap = PenLineCap.Flat") &&
+               timelineCode.Contains("marker.Position >= track.Right - 0.5") &&
+               timelineCode.Contains("DrawPatternSegments") &&
+               timelineCode.Contains("var segmentLeft = markerIndex > 0") &&
+               timelineCode.Contains("CreateText(marker.Title, 15, LabelBrush)") &&
+               timelineCode.Contains("CreateText(CompletionTimeFormatting.Format(marker.Seconds), 16, ValueBrush)") &&
+               timelineCode.Contains("private const double TrackTop = 49") &&
+               timelineCode.Contains("new Point(left, 16)") &&
+               timelineCode.Contains("new Point(left + title.Width + gap, 15)") &&
+               globalPageView.Contains("TimeProfile=\"{Binding TimeProfile}\"") &&
+               globalPageView.Contains("VerticalAlignment=\"Center\"") &&
+               timelineCode.Contains("if (marker.Seconds <= 0)") &&
+               timelineCode.Contains("OrderBy(marker => marker.SemanticIndex)") &&
+               !timelineCode.Contains("LeaderPen") &&
+               !timelineCode.Contains("PatternSwatchWidth") &&
+               !timelineCode.Contains("CreateHorizontalPatternBrush") &&
+               !timelineCode.Contains("CreateSparseDiagonalPatternBrush") &&
+               !timelineCode.Contains("CreateDotPatternBrush"),
+            "Completionist should use overscanned full-height diagonal strokes with sharp outline-clipped ends, while the timeline omits its terminal tick and unavailable labels and preserves semantic order.");
+        var battlefieldRatios = HowLongToBeatTimeline.CalculateSemanticMarkerRatios(
+            88L * 3600,
+            530L * 3600,
+            206L * 3600);
+        Expect(battlefieldRatios[0] < battlefieldRatios[1] &&
+               battlefieldRatios[1] < battlefieldRatios[2],
+            "Out-of-order HLTB values should still display Main Story, Main + Extras, then Completionist.");
+        var partialRatios = HowLongToBeatTimeline.CalculateSemanticMarkerRatios(
+            9L * 3600,
+            0,
+            0);
+        Expect(!double.IsNaN(partialRatios[0]) &&
+               double.IsNaN(partialRatios[1]) &&
+               double.IsNaN(partialRatios[2]),
+            "Unavailable HLTB estimates should not receive invented marker positions or labels.");
+        Expect(globalPageView.Contains("<Run Text=\"Time Played&#xA0;\"") &&
+               globalPageView.Contains("Text=\"{Binding PlayedTimeText, Mode=OneWay}\"") &&
+               globalPageView.Contains("FontSize=\"16\"") &&
+               globalPageView.Contains("Foreground=\"#F0F1F7\""),
+            "Time Played should share one baseline and the timeline label/value typography.");
+        Expect(!globalPageCode.Contains("SearchAsync(") &&
+               !globalPageCode.Contains("GetDetailsAsync("),
+            "Opening and filtering the global page should never fetch or stream HowLongToBeat data.");
 
         const string detailPage = "<html><script id=\"__NEXT_DATA__\" type=\"application/json\">" +
             "{\"props\":{\"pageProps\":{\"game\":{\"data\":{\"game\":[{" +
