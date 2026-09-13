@@ -41,6 +41,25 @@
       "upstream": "https://howlongtobeat.com/"
     },
     {
+      "id": "Exophase_26131977-669a-4ef7-a66c-026122a24089",
+      "name": "Exophase",
+      "description": "Unify cross-platform play time and activity from Exophase.",
+      "author": "Osiris",
+      "category": "Extras",
+      "tags": ["Extras"],
+      "version": "0.2.0",
+      "releaseDate": "2026-09-13T13:22:57+02:00",
+      "distribution": "public",
+      "installFolder": "Extras\\Exophase_26131977-669a-4ef7-a66c-026122a24089",
+      "releaseTag": "exophase-v0.2.0",
+      "packageUrl": "https://github.com/numinainitiative/Osiris_Extensions/releases/download/exophase-v0.2.0/Exophase_0.2.0.pext",
+      "sha256": "fe83cbe92e063608bd44ece8123ca1ac05b044abdbb76acd610ed9cdbc656ce4",
+      "size": 155801,
+      "iconUrl": "https://raw.githubusercontent.com/numinainitiative/Osiris_Extensions/main/catalog/icons/exophase.png",
+      "ownership": "original-clean-room",
+      "upstream": "https://www.exophase.com/"
+    },
+    {
       "id": "SteamLibrary_cb91dfc9-b977-43bf-8e70-55f46e410fab",
       "name": "Steam Library",
       "description": "Import and manage games from your Steam library.",
