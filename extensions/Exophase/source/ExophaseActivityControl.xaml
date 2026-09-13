@@ -1,0 +1,153 @@
+<PluginUserControl x:Class="Osiris.Extensions.Exophase.ExophaseActivityControl"
+                   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                   Focusable="False">
+    <PluginUserControl.Resources>
+        <Style x:Key="PlatformTitle" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Rajdhani" />
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#F0F1F7" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+            <Setter Property="TextOptions.TextRenderingMode" Value="ClearType" />
+        </Style>
+        <Style x:Key="PlatformTime" TargetType="TextBlock" BasedOn="{StaticResource PlatformTitle}">
+            <Setter Property="FontSize" Value="21" />
+            <Setter Property="Foreground" Value="#F2F2F2" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="TextAlignment" Value="Right" />
+        </Style>
+        <Style x:Key="PlatformRow" TargetType="Border">
+            <Setter Property="Background" Value="#090909" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="Padding" Value="20,15" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsLast}" Value="True">
+                    <Setter Property="CornerRadius" Value="0,0,12,12" />
+                    <Setter Property="Margin" Value="0" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="PlatformIconFrame" TargetType="Border">
+            <Setter Property="Width" Value="60" />
+            <Setter Property="Height" Value="60" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="#AFAFAF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="7" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </PluginUserControl.Resources>
+
+    <Grid>
+        <ItemsControl x:Name="ActivityPanel"
+                      ItemsSource="{Binding Platforms}"
+                      Background="#000000"
+                      ClipToBounds="True">
+            <ItemsControl.Style>
+                <Style TargetType="ItemsControl">
+                    <Setter Property="Visibility" Value="Visible" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding HasActivity}" Value="False">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </ItemsControl.Style>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Style="{StaticResource PlatformRow}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="60" />
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="110" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Style="{StaticResource PlatformIconFrame}">
+                                <Grid>
+                                    <Viewbox Width="32"
+                                             Height="32"
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Center">
+                                        <Viewbox.Style>
+                                            <Style TargetType="Viewbox">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding UseOsirisLogo}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Viewbox.Style>
+                                        <Path Data="{Binding IconGeometry}"
+                                              Fill="#F0F1F7"
+                                              Stretch="Uniform" />
+                                    </Viewbox>
+
+                                    <Image Width="50"
+                                           Height="50"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           RenderOptions.BitmapScalingMode="HighQuality"
+                                           Source="/Osiris.Exophase;component/Assets/osiris-logo.png"
+                                           Stretch="Uniform">
+                                        <Image.Style>
+                                            <Style TargetType="Image">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding UseOsirisLogo}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Image.Style>
+                                    </Image>
+                                </Grid>
+                            </Border>
+
+                            <TextBlock Grid.Column="2"
+                                       Style="{StaticResource PlatformTitle}"
+                                       TextTrimming="CharacterEllipsis">
+                                <Run Text="{Binding Platform}" /><Run Text="  " /><Run Text="{Binding SourceTag}"
+                                                                                 Foreground="#5F6269" />
+                            </TextBlock>
+
+                            <TextBlock Grid.Column="4"
+                                       Text="{Binding PlaytimeText}"
+                                       Style="{StaticResource PlatformTime}"
+                                       TextTrimming="CharacterEllipsis" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <TextBlock Text="{Binding StatusMessage}"
+                   Margin="16,15"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   FontFamily="Rajdhani"
+                   FontSize="14"
+                   FontWeight="SemiBold"
+                   Foreground="#777A82"
+                   TextAlignment="Center"
+                   TextWrapping="Wrap">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Visibility" Value="Visible" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding HasActivity}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+    </Grid>
+</PluginUserControl>

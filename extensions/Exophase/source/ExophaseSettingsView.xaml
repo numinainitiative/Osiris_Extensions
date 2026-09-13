@@ -1,0 +1,230 @@
+<UserControl x:Class="Osiris.Extensions.Exophase.ExophaseSettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch"
+             Background="Transparent"
+             Loaded="OnLoaded">
+    <TabControl HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch">
+        <TabItem Header="Account">
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto">
+                <Grid Width="760"
+                      MaxWidth="760"
+                      HorizontalAlignment="Left"
+                      VerticalAlignment="Top">
+                    <StackPanel Width="760" HorizontalAlignment="Left">
+                        <TextBlock Text="Exophase account"
+                                   Foreground="#F0F1F7"
+                                   FontFamily="{DynamicResource FontFamily}"
+                                   FontSize="20"
+                                   FontWeight="SemiBold" />
+                        <TextBlock Text="Connect the Exophase account whose cross-platform activity you want Osiris to use."
+                                   MaxWidth="720"
+                                   Margin="0,5,0,20"
+                                   HorizontalAlignment="Left"
+                                   Foreground="#777A82"
+                                   FontFamily="{DynamicResource FontFamily}"
+                                   FontSize="15"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap" />
+
+                        <Grid Width="760" Height="68" HorizontalAlignment="Left">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="56" />
+                                <ColumnDefinition Width="704" />
+                            </Grid.ColumnDefinitions>
+                            <CheckBox x:Name="ConnectAccountToggle"
+                                      Grid.Column="0"
+                                      Width="44"
+                                      Height="24"
+                                      IsChecked="{Binding ConnectAccount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      Click="OnConnectAccountChanged" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Connect Exophase account"
+                                           Foreground="#F0F1F7"
+                                           FontFamily="{DynamicResource FontFamily}"
+                                           FontSize="17"
+                                           FontWeight="SemiBold" />
+                                <TextBlock Text="Use an embedded Osiris browser so credentials stay on Exophase's sign-in page."
+                                           Foreground="#777A82"
+                                           FontFamily="{DynamicResource FontFamily}"
+                                           FontSize="15"
+                                           FontWeight="SemiBold"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Text="Connection"
+                                   Margin="0,28,0,8"
+                                   Foreground="#F0F1F7"
+                                   FontFamily="{DynamicResource FontFamily}"
+                                   FontSize="20"
+                                   FontWeight="SemiBold" />
+                        <TextBlock x:Name="ConnectionStatusText"
+                                   Text="{Binding ConnectionStatus}"
+                                   MaxWidth="720"
+                                   Margin="0,0,0,12"
+                                   HorizontalAlignment="Left"
+                                   Foreground="#777A82"
+                                   FontFamily="{DynamicResource FontFamily}"
+                                   FontSize="15"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap" />
+                        <StackPanel Orientation="Horizontal">
+                            <Button x:Name="AuthenticateButton"
+                                    Content="{Binding AuthenticationButtonText}"
+                                    Height="38"
+                                    Padding="18,0"
+                                    HorizontalAlignment="Left"
+                                    IsEnabled="{Binding CanAuthenticate}"
+                                    Click="OnAuthenticateClick" />
+                            <Button x:Name="SignOutButton"
+                                    Content="Sign out"
+                                    Height="38"
+                                    Margin="8,0,0,0"
+                                    Padding="18,0"
+                                    HorizontalAlignment="Left"
+                                    IsEnabled="{Binding CanSignOut}"
+                                    Click="OnSignOutClick" />
+                        </StackPanel>
+
+                        <TextBlock Text="Osiris stores no Exophase password. The browser session remains in Osiris's webview cookie store and can be cleared with Sign out."
+                                   MaxWidth="720"
+                                   Margin="0,18,0,0"
+                                   HorizontalAlignment="Left"
+                                   Foreground="#777A82"
+                                   FontFamily="{DynamicResource FontFamily}"
+                                   FontSize="15"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap" />
+
+                        <TextBlock Text="Profile"
+                                   Margin="0,28,0,8"
+                                   Foreground="#F0F1F7"
+                                   FontFamily="{DynamicResource FontFamily}"
+                                   FontSize="20"
+                                   FontWeight="SemiBold" />
+                        <TextBlock Text="Enter your Exophase username or full public profile URL. Leave this blank to detect the profile from your signed-in account."
+                                   MaxWidth="720"
+                                   Margin="0,0,0,10"
+                                   HorizontalAlignment="Left"
+                                   Foreground="#777A82"
+                                   FontFamily="{DynamicResource FontFamily}"
+                                   FontSize="15"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap" />
+                        <TextBox x:Name="ProfileReferenceTextBox"
+                                 Width="480"
+                                 Height="38"
+                                 Padding="10,0"
+                                 HorizontalAlignment="Left"
+                                 VerticalContentAlignment="Center"
+                                 Text="{Binding ProfileReference, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Text="{Binding DetectedProfileText}"
+                                   MaxWidth="720"
+                                   Margin="0,8,0,0"
+                                   HorizontalAlignment="Left"
+                                   Foreground="#777A82"
+                                   FontFamily="{DynamicResource FontFamily}"
+                                   FontSize="15"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Grid>
+            </ScrollViewer>
+        </TabItem>
+
+        <TabItem Header="General">
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto">
+                <Grid Width="760"
+                      MaxWidth="760"
+                      HorizontalAlignment="Left"
+                      VerticalAlignment="Top">
+                    <StackPanel Width="760" HorizontalAlignment="Left">
+                        <TextBlock Text="Preferences"
+                                   Foreground="#F0F1F7"
+                                   FontFamily="{DynamicResource FontFamily}"
+                                   FontSize="20"
+                                   FontWeight="SemiBold" />
+                        <TextBlock Text="Choose when Exophase synchronises and whether Osiris displays unified play time."
+                                   MaxWidth="720"
+                                   Margin="0,5,0,20"
+                                   HorizontalAlignment="Left"
+                                   Foreground="#777A82"
+                                   FontFamily="{DynamicResource FontFamily}"
+                                   FontSize="15"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap" />
+
+                        <Grid Width="760" HorizontalAlignment="Left">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="56" />
+                                <ColumnDefinition Width="704" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="68" />
+                                <RowDefinition Height="68" />
+                            </Grid.RowDefinitions>
+
+                            <CheckBox Grid.Row="0" Grid.Column="0"
+                                      Width="44" Height="24"
+                                      IsChecked="{Binding SyncOnStartup, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <StackPanel Grid.Row="0" Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Synchronise when Osiris starts"
+                                           Foreground="#F0F1F7" FontFamily="{DynamicResource FontFamily}"
+                                           FontSize="17" FontWeight="SemiBold" />
+                                <TextBlock Text="Refresh available Exophase activity after the launcher opens."
+                                           Foreground="#777A82" FontFamily="{DynamicResource FontFamily}"
+                                           FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            </StackPanel>
+
+                            <CheckBox Grid.Row="1" Grid.Column="0"
+                                      Width="44" Height="24"
+                                      IsChecked="{Binding OverrideDisplayedPlaytime, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <StackPanel Grid.Row="1" Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Display Total Time Played"
+                                           Foreground="#F0F1F7" FontFamily="{DynamicResource FontFamily}"
+                                           FontSize="17" FontWeight="SemiBold" />
+                                <TextBlock Text="Replace Time Played when Exophase has play time on a different platform. The current Osiris library platform still counts even when its tracked time is zero."
+                                           Foreground="#777A82" FontFamily="{DynamicResource FontFamily}"
+                                           FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Text="Synchronisation"
+                                   Margin="0,28,0,8"
+                                   Foreground="#F0F1F7"
+                                   FontFamily="{DynamicResource FontFamily}"
+                                   FontSize="20"
+                                   FontWeight="SemiBold" />
+                        <TextBlock Text="Synchronise the platforms and played time for Osiris games, to showcase and unify the total time played for a game across multiple platforms. This action will not override the time tracked by Osiris or its integrated libraries, it only adds up time tracked by other platforms not currently present on Osiris."
+                                   MaxWidth="720"
+                                   Margin="0,0,0,12"
+                                   HorizontalAlignment="Left"
+                                   Foreground="#777A82"
+                                   FontFamily="{DynamicResource FontFamily}"
+                                   FontSize="15"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap" />
+                        <Button x:Name="SynchronizeButton"
+                                Content="Synchronise now"
+                                Height="38"
+                                Padding="18,0"
+                                HorizontalAlignment="Left"
+                                IsEnabled="{Binding CanSynchronize}"
+                                Click="OnSynchronizeClick" />
+                    </StackPanel>
+                </Grid>
+            </ScrollViewer>
+        </TabItem>
+
+        <TabItem Header="Danger Zone" Foreground="#B04A4A">
+            <Grid x:Name="OsirisExtensionDangerZone"
+                  HorizontalAlignment="Stretch"
+                  VerticalAlignment="Top" />
+        </TabItem>
+    </TabControl>
+</UserControl>
