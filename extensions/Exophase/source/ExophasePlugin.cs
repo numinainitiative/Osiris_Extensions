@@ -22,6 +22,8 @@ namespace Osiris.Extensions.Exophase
         private readonly ExophaseGameSettingsStore gameSettingsStore;
         private readonly ExophaseActivityResolver activityResolver;
 
+        public static ExophasePlugin Current { get; private set; }
+
         public override Guid Id { get; } = Guid.Parse("26131977-669a-4ef7-a66c-026122a24089");
 
         public ExophasePlugin(IPlayniteAPI api) : base(api)
@@ -44,6 +46,7 @@ namespace Osiris.Extensions.Exophase
                 SourceName = ExtensionSource,
                 ElementList = new List<string> { ActivityControlName }
             });
+            Current = this;
         }
 
         public override Control GetGameViewControl(GetGameViewControlArgs args)
@@ -74,6 +77,40 @@ namespace Osiris.Extensions.Exophase
         internal void SaveSettings(ExophaseSettings value)
         {
             SavePluginSettings(value);
+        }
+
+        public ulong GetEffectivePlaytimeForOsiris(string gameId)
+        {
+            var game = FindGame(gameId);
+            if (!settings.OverrideDisplayedPlaytime)
+            {
+                return game.Playtime;
+            }
+
+            var editableActivity = activityResolver.Resolve(game, false);
+            var resolvedActivity = activityResolver.Resolve(game, true);
+            if (!ExophaseActivityControl.HasDisplayableActivity(editableActivity) ||
+                !resolvedActivity.CanDisplayTotal)
+            {
+                return game.Playtime;
+            }
+
+            if (!editableActivity.UsesManualMatch &&
+                editableActivity.Platforms.Any(platform => !platform.IsManual))
+            {
+                var matchKey = ExophaseActivityParser.NormalizeTitle(game.Name);
+                var matchingLibraryGames = PlayniteApi.Database.Games.Count(candidate =>
+                    string.Equals(
+                        ExophaseActivityParser.NormalizeTitle(candidate.Name),
+                        matchKey,
+                        StringComparison.Ordinal));
+                if (matchingLibraryGames != 1)
+                {
+                    return game.Playtime;
+                }
+            }
+
+            return resolvedActivity.TotalPlaytimeSeconds;
         }
 
         public string GetGameSettingsForOsiris(string gameId)

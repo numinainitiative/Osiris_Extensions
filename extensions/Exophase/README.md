@@ -6,7 +6,7 @@ profile with matching games in Osiris.
 
 ## Current prototype
 
-Version 0.2.2 provides:
+Version 0.2.3 provides:
 
 - Account, General, and Danger Zone settings pages.
 - A first-party Osiris embedded-browser sign-in flow for Exophase.
@@ -38,6 +38,9 @@ Version 0.2.2 provides:
   can never be counted twice.
 - Display-only totals: Exophase no longer writes its aggregate into the native
   game play-time field.
+- A narrow optional runtime contract that lets HowLongToBeat compare its
+  completion estimates with the same guarded Total Time Played value displayed
+  by Osiris, without coupling either extension at build time.
 - Manual and startup synchronization with progress in Osiris's bottom panel.
 - Session verification and local webview-cookie sign-out.
 

@@ -101,6 +101,13 @@ internal static class Program
         var settingsSource = File.ReadAllText(Path.Combine(extensionRoot, "source", "ExophaseSettings.cs"));
         var settingsViewSource = File.ReadAllText(Path.Combine(extensionRoot, "source", "ExophaseSettingsView.xaml.cs"));
         var pluginSource = File.ReadAllText(Path.Combine(extensionRoot, "source", "ExophasePlugin.cs"));
+        Expect(pluginSource.Contains("public static ExophasePlugin Current") &&
+               pluginSource.Contains("GetEffectivePlaytimeForOsiris") &&
+               pluginSource.Contains("settings.OverrideDisplayedPlaytime") &&
+               pluginSource.Contains("resolvedActivity.CanDisplayTotal") &&
+               pluginSource.Contains("return game.Playtime") &&
+               pluginSource.Contains("return resolvedActivity.TotalPlaytimeSeconds"),
+            "Exophase should expose its guarded effective playtime to optional peer extensions.");
         Expect(settingsSource.Contains("internal async Task AuthenticateAsync()") &&
                settingsSource.Contains("if (IsConnected)") &&
                settingsSource.Contains("await SynchronizeAsync();") &&
