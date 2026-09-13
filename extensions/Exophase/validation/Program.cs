@@ -370,6 +370,30 @@ internal static class Program
                         Title = "Assassin's Creed IV: Black Flag",
                         Platform = "PlayStation 4",
                         PlaytimeSeconds = 40UL * 3600UL
+                    },
+                    new ExophaseGameActivity
+                    {
+                        Title = "The Witcher 3: Wild Hunt - Game of the Year Edition",
+                        Platform = "PlayStation 4",
+                        PlaytimeSeconds = 70UL * 3600UL,
+                        EarnedAwards = 20,
+                        TotalAwards = 50
+                    },
+                    new ExophaseGameActivity
+                    {
+                        Title = "The Witcher 3: Wild Hunt - Complete Edition",
+                        Platform = "Steam",
+                        PlaytimeSeconds = 25UL * 3600UL,
+                        EarnedAwards = 10,
+                        TotalAwards = 30
+                    },
+                    new ExophaseGameActivity
+                    {
+                        Title = "The Witcher 3: Wild Hunt - Complete Edition",
+                        Platform = "PlayStation 4",
+                        PlaytimeSeconds = 5UL * 3600UL,
+                        EarnedAwards = 2,
+                        TotalAwards = 10
                     }
                 }
             };
@@ -431,9 +455,36 @@ internal static class Program
             var manuallyMatchedTotal = resolver.Resolve(differentlyNamedGame, true);
             Expect(manuallyMatchedTotal.UsesManualMatch &&
                    manuallyMatchedTotal.MatchedTitle == "The Last of Us Part I" &&
+                   manuallyMatchedTotal.MatchedTitles.Count == 1 &&
                    manuallyMatchedTotal.PositivePlatformCount == 3 &&
                    manuallyMatchedTotal.TotalPlaytimeSeconds == 98UL * 3600UL,
                 "A saved Exophase title selection should resolve platform time for a differently named Osiris game.");
+
+            var multiEditionGame = new Game
+            {
+                Id = Guid.NewGuid(),
+                Name = "The Witcher 3",
+                PluginId = Guid.Empty,
+                Playtime = 8UL * 3600UL
+            };
+            gameSettings.Save(multiEditionGame.Id, new ExophaseGameSettings
+            {
+                MatchedTitles = new List<string>
+                {
+                    "The Witcher 3: Wild Hunt - Game of the Year Edition",
+                    "The Witcher 3: Wild Hunt - Complete Edition"
+                }
+            });
+            var multiEditionTotal = resolver.Resolve(multiEditionGame, true);
+            Expect(multiEditionTotal.UsesManualMatch &&
+                   multiEditionTotal.MatchedTitles.Count == 2 &&
+                   multiEditionTotal.PositivePlatformCount == 3 &&
+                   multiEditionTotal.TotalPlaytimeSeconds == 108UL * 3600UL &&
+                   multiEditionTotal.Platforms.Single(item => item.Platform == "PlayStation 4").PlaytimeSeconds ==
+                       75UL * 3600UL &&
+                   multiEditionTotal.Platforms.Single(item => item.Platform == "Steam").PlaytimeSeconds ==
+                       25UL * 3600UL,
+                "Multiple Exophase editions should combine their platform activity without losing the local Osiris baseline.");
 
             var legacyImportedGame = new Game
             {
@@ -534,6 +585,7 @@ internal static class Program
             var reloadedSettings = new ExophaseGameSettingsStore(temporaryRoot).Load(localGame.Id);
             Expect(!reloadedSettings.Enabled &&
                    reloadedSettings.MatchedTitle == "The Last of Us Part I" &&
+                   reloadedSettings.MatchedTitles.SequenceEqual(new[] { "The Last of Us Part I" }) &&
                    reloadedSettings.Platforms.Count == 1 &&
                    reloadedSettings.Platforms[0].Platform == "Nintendo Switch",
                 "Per-game enable state, explicit match, and manual platform time should survive a restart.");

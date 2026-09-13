@@ -19,6 +19,8 @@ namespace Osiris.Extensions.Exophase
 
         public string MatchedTitle { get; set; }
 
+        public List<string> MatchedTitles { get; set; } = new List<string>();
+
         public List<ExophaseResolvedPlatform> Platforms { get; set; } =
             new List<ExophaseResolvedPlatform>();
 
@@ -85,10 +87,24 @@ namespace Osiris.Extensions.Exophase
             }
 
             var stored = gameSettingsStore.Load(game.Id);
-            var usesManualMatch = !string.IsNullOrWhiteSpace(stored.MatchedTitle);
-            var lookupTitle = usesManualMatch ? stored.MatchedTitle : game.Name;
-            var lookup = activityStore.FindGame(lookupTitle);
-            var imported = lookup.Game?.Platforms ?? new List<ExophasePlatformActivity>();
+            var matchedTitles = (stored.MatchedTitles ?? new List<string>())
+                .Where(title => !string.IsNullOrWhiteSpace(title))
+                .Select(title => title.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            if (matchedTitles.Count == 0 && !string.IsNullOrWhiteSpace(stored.MatchedTitle))
+            {
+                matchedTitles.Add(stored.MatchedTitle.Trim());
+            }
+
+            var usesManualMatch = matchedTitles.Count > 0;
+            var lookups = (usesManualMatch ? matchedTitles : new List<string> { game.Name })
+                .Select(activityStore.FindGame)
+                .ToList();
+            var lookup = lookups.FirstOrDefault() ?? activityStore.FindGame(game.Name);
+            var imported = MergeMatchedGamePlatforms(lookups
+                .Where(item => item.Game != null)
+                .SelectMany(item => item.Game.Platforms ?? new List<ExophasePlatformActivity>()));
             var platforms = new List<ExophaseResolvedPlatform>();
             foreach (var source in imported)
             {
@@ -131,10 +147,10 @@ namespace Osiris.Extensions.Exophase
                 .Select(MergeDuplicatePlatforms)
                 .ToList();
 
+            var importedTotal = SaturatingSum(imported.Select(item => item.PlaytimeSeconds));
             var looksLikeLegacyImportedTotal = game.PluginId == Guid.Empty &&
-                                               lookup.Game != null &&
-                                               lookup.Game.TotalPlaytimeSeconds > 0 &&
-                                               game.Playtime == lookup.Game.TotalPlaytimeSeconds;
+                                               importedTotal > 0 &&
+                                               game.Playtime == importedTotal;
             if (includeBaseline && !looksLikeLegacyImportedTotal)
             {
                 ApplyNativeBaseline(platforms, game);
@@ -152,7 +168,12 @@ namespace Osiris.Extensions.Exophase
                 SnapshotIsInvalid = lookup.SnapshotIsInvalid,
                 FetchedUtc = lookup.FetchedUtc,
                 UsesManualMatch = usesManualMatch,
-                MatchedTitle = usesManualMatch ? stored.MatchedTitle : lookup.Game?.Title,
+                MatchedTitle = usesManualMatch ? matchedTitles.FirstOrDefault() : lookup.Game?.Title,
+                MatchedTitles = usesManualMatch
+                    ? matchedTitles
+                    : (lookup.Game == null
+                        ? new List<string>()
+                        : new List<string> { lookup.Game.Title }),
                 Platforms = platforms
             };
             result.TotalPlaytimeSeconds = SaturatingSum(platforms.Select(item => item.PlaytimeSeconds));
@@ -216,6 +237,28 @@ namespace Osiris.Extensions.Exophase
             return "Integrated Library";
         }
 
+        private static List<ExophasePlatformActivity> MergeMatchedGamePlatforms(
+            IEnumerable<ExophasePlatformActivity> values)
+        {
+            return (values ?? Enumerable.Empty<ExophasePlatformActivity>())
+                .Where(item => item != null && !string.IsNullOrWhiteSpace(item.Platform))
+                .GroupBy(
+                    item => NormalizePlatformKey(item.Platform),
+                    StringComparer.OrdinalIgnoreCase)
+                .Select(group =>
+                {
+                    var first = group.First();
+                    return new ExophasePlatformActivity
+                    {
+                        Platform = first.Platform,
+                        PlaytimeSeconds = SaturatingSum(group.Select(item => item.PlaytimeSeconds)),
+                        EarnedAwards = SaturatingIntSum(group.Select(item => item.EarnedAwards)),
+                        TotalAwards = SaturatingIntSum(group.Select(item => item.TotalAwards))
+                    };
+                })
+                .ToList();
+        }
+
         private static ExophaseResolvedPlatform MergeDuplicatePlatforms(
             IGrouping<string, ExophaseResolvedPlatform> group)
         {
@@ -247,6 +290,21 @@ namespace Osiris.Extensions.Exophase
             }
 
             return total;
+        }
+
+        private static int SaturatingIntSum(IEnumerable<int> values)
+        {
+            long total = 0;
+            foreach (var value in values)
+            {
+                total += Math.Max(0, value);
+                if (total >= int.MaxValue)
+                {
+                    return int.MaxValue;
+                }
+            }
+
+            return (int)total;
         }
     }
 }

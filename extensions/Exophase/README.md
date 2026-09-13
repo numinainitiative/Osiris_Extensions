@@ -6,7 +6,7 @@ profile with matching games in Osiris.
 
 ## Current prototype
 
-Version 0.2.1 provides:
+Version 0.2.2 provides:
 
 - Account, General, and Danger Zone settings pages.
 - A first-party Osiris embedded-browser sign-in flow for Exophase.
@@ -23,10 +23,11 @@ Version 0.2.1 provides:
   The card remains hidden until a game has synchronized or manually added
   platform activity.
 - Per-game controls in Game Edit for enabling Exophase, reviewing and
-  correcting synchronized platform times, explicitly matching an Osiris game
-  to a differently named title in the synchronized Exophase library, and
-  adding or removing manual platforms. Match choices and manual corrections
-  are private extension data and survive a restart.
+  correcting synchronized platform times, explicitly linking any number of
+  differently named editions from the synchronized Exophase library, and
+  adding or removing manual platforms. Linked editions are combined by
+  platform; match choices and manual corrections are private extension data
+  and survive a restart.
 - An opt-in **Display Total Time Played** setting. It replaces the hero's
   native **Time Played** value when Exophase has positive time on a different
   platform. Osiris's native value remains authoritative for the game's current

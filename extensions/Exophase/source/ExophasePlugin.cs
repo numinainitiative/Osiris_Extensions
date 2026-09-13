@@ -86,6 +86,24 @@ namespace Osiris.Extensions.Exophase
             {
                 enabled = stored.Enabled,
                 matchedTitle = stored.MatchedTitle,
+                matchedTitles = stored.MatchedTitles,
+                matchedGames = (stored.MatchedTitles ?? new List<string>())
+                    .Select(title => activityStore.FindGame(title).Game)
+                    .Where(item => item != null)
+                    .Select(item => new
+                    {
+                        title = item.Title,
+                        totalPlaytimeSeconds = item.TotalPlaytimeSeconds,
+                        platforms = (item.Platforms ?? new List<ExophasePlatformActivity>()).Select(platform => new
+                        {
+                            id = "exophase:" + ExophaseActivityResolver.NormalizePlatformKey(platform.Platform),
+                            sourceKey = ExophaseActivityResolver.NormalizePlatformKey(platform.Platform),
+                            platform = platform.Platform,
+                            playtimeSeconds = platform.PlaytimeSeconds,
+                            originalPlaytimeSeconds = platform.PlaytimeSeconds,
+                            isManual = false
+                        })
+                    }),
                 automaticPlatforms = (automaticLookup.Game?.Platforms ??
                     new List<ExophasePlatformActivity>()).Select(item => new
                 {
@@ -132,23 +150,46 @@ namespace Osiris.Extensions.Exophase
             var document = string.IsNullOrWhiteSpace(settingsJson)
                 ? new JObject()
                 : JObject.Parse(settingsJson);
-            var matchedTitle = (document.Value<string>("matchedTitle") ?? string.Empty).Trim();
-            if (matchedTitle.Length > 256)
+            var requestedTitles = (document["matchedTitles"] as JArray ?? new JArray())
+                .Values<string>()
+                .Select(title => (title ?? string.Empty).Trim())
+                .Where(title => title.Length > 0)
+                .ToList();
+            if (requestedTitles.Count == 0)
             {
-                throw new ArgumentException("The selected Exophase title is too long.", nameof(settingsJson));
+                var legacyTitle = (document.Value<string>("matchedTitle") ?? string.Empty).Trim();
+                if (legacyTitle.Length > 0)
+                {
+                    requestedTitles.Add(legacyTitle);
+                }
             }
 
-            if (matchedTitle.Length > 0)
+            if (requestedTitles.Count > 32)
             {
-                var match = activityStore.FindGame(matchedTitle).Game;
+                throw new ArgumentException("A game can use at most 32 Exophase editions.", nameof(settingsJson));
+            }
+
+            var matchedTitles = new List<string>();
+            var matchedTitleKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var requestedTitle in requestedTitles)
+            {
+                if (requestedTitle.Length > 256)
+                {
+                    throw new ArgumentException("A selected Exophase title is too long.", nameof(settingsJson));
+                }
+
+                var match = activityStore.FindGame(requestedTitle).Game;
                 if (match == null)
                 {
                     throw new ArgumentException(
-                        "The selected Exophase game is no longer present in the synchronized activity data.",
+                        "A selected Exophase game is no longer present in the synchronized activity data.",
                         nameof(settingsJson));
                 }
 
-                matchedTitle = match.Title;
+                if (matchedTitleKeys.Add(match.Title))
+                {
+                    matchedTitles.Add(match.Title);
+                }
             }
 
             var savedPlatforms = new List<ExophasePlatformSetting>();
@@ -200,7 +241,8 @@ namespace Osiris.Extensions.Exophase
             gameSettingsStore.Save(game.Id, new ExophaseGameSettings
             {
                 Enabled = document.Value<bool?>("enabled") ?? true,
-                MatchedTitle = matchedTitle.Length == 0 ? null : matchedTitle,
+                MatchedTitle = matchedTitles.FirstOrDefault(),
+                MatchedTitles = matchedTitles,
                 Platforms = savedPlatforms
             });
         }

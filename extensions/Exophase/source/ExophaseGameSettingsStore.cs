@@ -12,6 +12,8 @@ namespace Osiris.Extensions.Exophase
 
         public string MatchedTitle { get; set; }
 
+        public List<string> MatchedTitles { get; set; } = new List<string>();
+
         public List<ExophasePlatformSetting> Platforms { get; set; } =
             new List<ExophasePlatformSetting>();
 
@@ -21,6 +23,7 @@ namespace Osiris.Extensions.Exophase
             {
                 Enabled = Enabled,
                 MatchedTitle = MatchedTitle,
+                MatchedTitles = (MatchedTitles ?? new List<string>()).ToList(),
                 Platforms = (Platforms ?? new List<ExophasePlatformSetting>())
                     .Where(item => item != null)
                     .Select(item => item.Clone())
@@ -143,6 +146,22 @@ namespace Osiris.Extensions.Exophase
         private static ExophaseGameSettings Sanitize(ExophaseGameSettings value)
         {
             var source = value ?? new ExophaseGameSettings();
+            var matchedTitles = new List<string>();
+            var matchedTitleKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var title in source.MatchedTitles ?? new List<string>())
+            {
+                var normalizedTitle = (title ?? string.Empty).Trim();
+                if (normalizedTitle.Length > 0 && matchedTitleKeys.Add(normalizedTitle))
+                {
+                    matchedTitles.Add(normalizedTitle);
+                }
+            }
+
+            var legacyMatchedTitle = (source.MatchedTitle ?? string.Empty).Trim();
+            if (matchedTitles.Count == 0 && legacyMatchedTitle.Length > 0)
+            {
+                matchedTitles.Add(legacyMatchedTitle);
+            }
             var platforms = new List<ExophasePlatformSetting>();
             var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var item in source.Platforms ?? new List<ExophasePlatformSetting>())
@@ -173,9 +192,10 @@ namespace Osiris.Extensions.Exophase
             return new ExophaseGameSettings
             {
                 Enabled = source.Enabled,
-                MatchedTitle = string.IsNullOrWhiteSpace(source.MatchedTitle)
-                    ? null
-                    : source.MatchedTitle.Trim(),
+                // Keep the first title populated for safe rollback to older
+                // extension builds while MatchedTitles stores every edition.
+                MatchedTitle = matchedTitles.FirstOrDefault(),
+                MatchedTitles = matchedTitles,
                 Platforms = platforms
             };
         }
