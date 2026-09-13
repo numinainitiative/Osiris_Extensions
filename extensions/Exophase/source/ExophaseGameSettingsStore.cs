@@ -10,6 +10,8 @@ namespace Osiris.Extensions.Exophase
     {
         public bool Enabled { get; set; } = true;
 
+        public string MatchedTitle { get; set; }
+
         public List<ExophasePlatformSetting> Platforms { get; set; } =
             new List<ExophasePlatformSetting>();
 
@@ -18,6 +20,7 @@ namespace Osiris.Extensions.Exophase
             return new ExophaseGameSettings
             {
                 Enabled = Enabled,
+                MatchedTitle = MatchedTitle,
                 Platforms = (Platforms ?? new List<ExophasePlatformSetting>())
                     .Where(item => item != null)
                     .Select(item => item.Clone())
@@ -170,6 +173,9 @@ namespace Osiris.Extensions.Exophase
             return new ExophaseGameSettings
             {
                 Enabled = source.Enabled,
+                MatchedTitle = string.IsNullOrWhiteSpace(source.MatchedTitle)
+                    ? null
+                    : source.MatchedTitle.Trim(),
                 Platforms = platforms
             };
         }

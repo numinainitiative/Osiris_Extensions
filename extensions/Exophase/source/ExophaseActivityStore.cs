@@ -19,6 +19,13 @@ namespace Osiris.Extensions.Exophase
 
     internal sealed class ExophaseActivityStore
     {
+        private static readonly HashSet<string> SearchNoiseWords = new HashSet<string>(
+            new[]
+            {
+                "a", "an", "and", "bundle", "collection", "complete", "definitive",
+                "edition", "game", "goty", "of", "remake", "remastered", "resynced", "the"
+            },
+            StringComparer.OrdinalIgnoreCase);
         private readonly object syncRoot = new object();
         private readonly string snapshotPath;
         private bool loaded;
@@ -59,6 +66,79 @@ namespace Osiris.Extensions.Exophase
                     Game = Clone(game)
                 };
             }
+        }
+
+        public List<ExophaseGameAggregate> SearchGames(string query, int maximumResults = 50)
+        {
+            EnsureCurrent();
+            var normalizedQuery = ExophaseActivityParser.NormalizeTitle(query);
+            if (string.IsNullOrEmpty(normalizedQuery) || maximumResults <= 0)
+            {
+                return new List<ExophaseGameAggregate>();
+            }
+
+            var queryTokens = GetSearchTokens(query);
+            lock (syncRoot)
+            {
+                return gamesByMatchKey.Values
+                    .Where(game => game != null)
+                    .Select(game => new
+                    {
+                        Game = game,
+                        Score = GetSearchScore(game, normalizedQuery, queryTokens)
+                    })
+                    .Where(result => result.Score > 0)
+                    .OrderByDescending(result => result.Score)
+                    .ThenBy(result => result.Game.Title, StringComparer.OrdinalIgnoreCase)
+                    .Take(maximumResults)
+                    .Select(result => Clone(result.Game))
+                    .ToList();
+            }
+        }
+
+        private static int GetSearchScore(
+            ExophaseGameAggregate game,
+            string normalizedQuery,
+            HashSet<string> queryTokens)
+        {
+            if (string.Equals(game.MatchKey, normalizedQuery, StringComparison.Ordinal))
+            {
+                return 10000;
+            }
+
+            if (game.MatchKey.Contains(normalizedQuery))
+            {
+                return 9000 - Math.Min(1000, game.MatchKey.Length - normalizedQuery.Length);
+            }
+
+            if (normalizedQuery.Contains(game.MatchKey))
+            {
+                return 8000 - Math.Min(1000, normalizedQuery.Length - game.MatchKey.Length);
+            }
+
+            var gameTokens = GetSearchTokens(game.Title);
+            var overlap = queryTokens.Count(token => gameTokens.Contains(token));
+            if (overlap == 0 || (queryTokens.Count > 1 && overlap < 2))
+            {
+                return 0;
+            }
+
+            var queryCoverage = overlap * 100 / Math.Max(1, queryTokens.Count);
+            var gameCoverage = overlap * 100 / Math.Max(1, gameTokens.Count);
+            return queryCoverage * 10 + gameCoverage;
+        }
+
+        private static HashSet<string> GetSearchTokens(string value)
+        {
+            var separated = new string((value ?? string.Empty)
+                .Select(character => char.IsLetterOrDigit(character)
+                    ? char.ToLowerInvariant(character)
+                    : ' ')
+                .ToArray());
+            return new HashSet<string>(
+                separated.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Where(token => token.Length > 1 && !SearchNoiseWords.Contains(token)),
+                StringComparer.OrdinalIgnoreCase);
         }
 
         public void Update(ExophaseActivitySnapshot snapshot)

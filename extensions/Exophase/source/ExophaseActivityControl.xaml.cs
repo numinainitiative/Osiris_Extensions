@@ -102,8 +102,16 @@ namespace Osiris.Extensions.Exophase
         public override void GameContextChanged(Game oldContext, Game newContext)
         {
             activeGame = newContext;
-            IsCardVisible = newContext != null;
+            IsCardVisible = false;
             Refresh();
+        }
+
+        internal static bool HasDisplayableActivity(ExophaseResolvedActivity activity)
+        {
+            return activity != null &&
+                   activity.Enabled &&
+                   activity.Platforms != null &&
+                   activity.Platforms.Count > 0;
         }
 
         internal static string FormatCompactPlaytime(ulong seconds)
@@ -163,6 +171,7 @@ namespace Osiris.Extensions.Exophase
         private void Refresh()
         {
             var game = activeGame;
+            IsCardVisible = false;
             HasActivity = false;
             HasOverflow = false;
             Platforms = new List<ExophasePlatformRow>();
@@ -178,26 +187,29 @@ namespace Osiris.Extensions.Exophase
 
             var editableActivity = activityResolver.Resolve(game, false);
             var resolvedActivity = activityResolver.Resolve(game, true);
-            IsCardVisible = resolvedActivity.Enabled;
             if (!resolvedActivity.Enabled)
             {
                 StatusMessage = "Exophase is disabled for this game.";
                 return;
             }
 
-            var matchKey = ExophaseActivityParser.NormalizeTitle(game.Name);
-            var matchingLibraryGames = api.Database.Games.Count(candidate =>
-                string.Equals(
-                    ExophaseActivityParser.NormalizeTitle(candidate.Name),
-                    matchKey,
-                    StringComparison.Ordinal));
-            if (matchingLibraryGames != 1)
+            if (!editableActivity.UsesManualMatch &&
+                editableActivity.Platforms.Any(platform => !platform.IsManual))
             {
-                StatusMessage = "More than one Osiris game matches this title, so Exophase activity cannot be assigned safely.";
-                return;
+                var matchKey = ExophaseActivityParser.NormalizeTitle(game.Name);
+                var matchingLibraryGames = api.Database.Games.Count(candidate =>
+                    string.Equals(
+                        ExophaseActivityParser.NormalizeTitle(candidate.Name),
+                        matchKey,
+                        StringComparison.Ordinal));
+                if (matchingLibraryGames != 1)
+                {
+                    StatusMessage = "More than one Osiris game matches this title, so Exophase activity cannot be assigned safely.";
+                    return;
+                }
             }
 
-            if (editableActivity.Platforms.Count == 0)
+            if (!HasDisplayableActivity(editableActivity))
             {
                 StatusMessage = editableActivity.SnapshotIsInvalid
                     ? "Exophase activity data could not be read. Synchronize again in extension settings."
@@ -242,6 +254,7 @@ namespace Osiris.Extensions.Exophase
             HasOverflow = rows.Count > 2;
             StatusMessage = string.Empty;
             HasActivity = true;
+            IsCardVisible = rows.Count > 0;
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e)

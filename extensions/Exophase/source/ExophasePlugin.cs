@@ -81,9 +81,21 @@ namespace Osiris.Extensions.Exophase
             var game = FindGame(gameId);
             var stored = gameSettingsStore.Load(game.Id);
             var resolved = activityResolver.Resolve(game, false);
+            var automaticLookup = activityStore.FindGame(game.Name);
             return JsonConvert.SerializeObject(new
             {
                 enabled = stored.Enabled,
+                matchedTitle = stored.MatchedTitle,
+                automaticPlatforms = (automaticLookup.Game?.Platforms ??
+                    new List<ExophasePlatformActivity>()).Select(item => new
+                {
+                    id = "exophase:" + ExophaseActivityResolver.NormalizePlatformKey(item.Platform),
+                    sourceKey = ExophaseActivityResolver.NormalizePlatformKey(item.Platform),
+                    platform = item.Platform,
+                    playtimeSeconds = item.PlaytimeSeconds,
+                    originalPlaytimeSeconds = item.PlaytimeSeconds,
+                    isManual = false
+                }),
                 platforms = resolved.Platforms.Select(item => new
                 {
                     id = item.Id,
@@ -96,12 +108,49 @@ namespace Osiris.Extensions.Exophase
             });
         }
 
+        public string SearchGamesForOsiris(string query)
+        {
+            return JsonConvert.SerializeObject(activityStore.SearchGames(query).Select(game => new
+            {
+                title = game.Title,
+                totalPlaytimeSeconds = game.TotalPlaytimeSeconds,
+                platforms = (game.Platforms ?? new List<ExophasePlatformActivity>()).Select(item => new
+                {
+                    id = "exophase:" + ExophaseActivityResolver.NormalizePlatformKey(item.Platform),
+                    sourceKey = ExophaseActivityResolver.NormalizePlatformKey(item.Platform),
+                    platform = item.Platform,
+                    playtimeSeconds = item.PlaytimeSeconds,
+                    originalPlaytimeSeconds = item.PlaytimeSeconds,
+                    isManual = false
+                })
+            }));
+        }
+
         public void SaveGameSettingsForOsiris(string gameId, string settingsJson)
         {
             var game = FindGame(gameId);
             var document = string.IsNullOrWhiteSpace(settingsJson)
                 ? new JObject()
                 : JObject.Parse(settingsJson);
+            var matchedTitle = (document.Value<string>("matchedTitle") ?? string.Empty).Trim();
+            if (matchedTitle.Length > 256)
+            {
+                throw new ArgumentException("The selected Exophase title is too long.", nameof(settingsJson));
+            }
+
+            if (matchedTitle.Length > 0)
+            {
+                var match = activityStore.FindGame(matchedTitle).Game;
+                if (match == null)
+                {
+                    throw new ArgumentException(
+                        "The selected Exophase game is no longer present in the synchronized activity data.",
+                        nameof(settingsJson));
+                }
+
+                matchedTitle = match.Title;
+            }
+
             var savedPlatforms = new List<ExophasePlatformSetting>();
             var platformKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var token in (document["platforms"] as JArray ?? new JArray()).OfType<JObject>())
@@ -151,6 +200,7 @@ namespace Osiris.Extensions.Exophase
             gameSettingsStore.Save(game.Id, new ExophaseGameSettings
             {
                 Enabled = document.Value<bool?>("enabled") ?? true,
+                MatchedTitle = matchedTitle.Length == 0 ? null : matchedTitle,
                 Platforms = savedPlatforms
             });
         }

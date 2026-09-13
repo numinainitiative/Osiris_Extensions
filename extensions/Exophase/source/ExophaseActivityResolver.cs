@@ -15,6 +15,10 @@ namespace Osiris.Extensions.Exophase
 
         public DateTime FetchedUtc { get; set; }
 
+        public bool UsesManualMatch { get; set; }
+
+        public string MatchedTitle { get; set; }
+
         public List<ExophaseResolvedPlatform> Platforms { get; set; } =
             new List<ExophaseResolvedPlatform>();
 
@@ -81,7 +85,9 @@ namespace Osiris.Extensions.Exophase
             }
 
             var stored = gameSettingsStore.Load(game.Id);
-            var lookup = activityStore.FindGame(game.Name);
+            var usesManualMatch = !string.IsNullOrWhiteSpace(stored.MatchedTitle);
+            var lookupTitle = usesManualMatch ? stored.MatchedTitle : game.Name;
+            var lookup = activityStore.FindGame(lookupTitle);
             var imported = lookup.Game?.Platforms ?? new List<ExophasePlatformActivity>();
             var platforms = new List<ExophaseResolvedPlatform>();
             foreach (var source in imported)
@@ -145,6 +151,8 @@ namespace Osiris.Extensions.Exophase
                 HasSnapshot = lookup.HasSnapshot,
                 SnapshotIsInvalid = lookup.SnapshotIsInvalid,
                 FetchedUtc = lookup.FetchedUtc,
+                UsesManualMatch = usesManualMatch,
+                MatchedTitle = usesManualMatch ? stored.MatchedTitle : lookup.Game?.Title,
                 Platforms = platforms
             };
             result.TotalPlaytimeSeconds = SaturatingSum(platforms.Select(item => item.PlaytimeSeconds));

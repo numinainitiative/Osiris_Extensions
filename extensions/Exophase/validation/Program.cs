@@ -174,7 +174,9 @@ internal static class Program
         var extractionSource = File.ReadAllText(Path.Combine(extensionRoot, "source", "ExophaseExtractionService.cs"));
         Expect(pluginSource.Contains("candidates.Count != 1") &&
                pluginSource.Contains("GetGameSettingsForOsiris") &&
+               pluginSource.Contains("SearchGamesForOsiris") &&
                pluginSource.Contains("SaveGameSettingsForOsiris") &&
+               pluginSource.Contains("matchedTitle") &&
                !pluginSource.Contains("Database.Games.Update") &&
                !pluginSource.Contains("game.Playtime ="),
             "Exophase should match unique titles and expose per-game settings without overwriting native playtime.");
@@ -216,6 +218,28 @@ internal static class Program
                }) == "Manual" &&
                ExophaseActivityControl.GetSourceTag(new ExophaseResolvedPlatform()) == "Exophase",
             "Platform rows should distinguish native, manual, and synchronized play-time provenance.");
+        Expect(!ExophaseActivityControl.HasDisplayableActivity(null) &&
+               !ExophaseActivityControl.HasDisplayableActivity(new ExophaseResolvedActivity
+               {
+                   Enabled = true
+               }) &&
+               !ExophaseActivityControl.HasDisplayableActivity(new ExophaseResolvedActivity
+               {
+                   Enabled = false,
+                   Platforms = new List<ExophaseResolvedPlatform>
+                   {
+                       new ExophaseResolvedPlatform { Platform = "Steam" }
+                   }
+               }) &&
+               ExophaseActivityControl.HasDisplayableActivity(new ExophaseResolvedActivity
+               {
+                   Enabled = true,
+                   Platforms = new List<ExophaseResolvedPlatform>
+                   {
+                       new ExophaseResolvedPlatform { Platform = "Steam" }
+                   }
+               }),
+            "The details card should remain hidden until an enabled game has synchronized or manually added platform activity.");
 
         var steamVisual = ExophasePlatformVisualCatalog.Resolve("Steam");
         var playStationVisual = ExophasePlatformVisualCatalog.Resolve("PS4");
@@ -297,6 +321,9 @@ internal static class Program
                activityControlSource.Contains("SourceTag = GetSourceTag(platform)") &&
                activityControlSource.Contains("public bool HasOverflow") &&
                activityControlSource.Contains("HasOverflow = rows.Count > 2") &&
+               activityControlSource.Contains("IsCardVisible = rows.Count > 0") &&
+               !activityControlSource.Contains("IsCardVisible = resolvedActivity.Enabled") &&
+               activityControlSource.Contains("!editableActivity.UsesManualMatch") &&
                projectSource.Contains("Resource Include=\"Assets\\osiris-logo.png\"") &&
                File.Exists(osirisLogoPath) &&
                new FileInfo(osirisLogoPath).Length > 0 &&
@@ -337,6 +364,12 @@ internal static class Program
                         Title = "Only Steam",
                         Platform = "Steam",
                         PlaytimeSeconds = 12UL * 3600UL
+                    },
+                    new ExophaseGameActivity
+                    {
+                        Title = "Assassin's Creed IV: Black Flag",
+                        Platform = "PlayStation 4",
+                        PlaytimeSeconds = 40UL * 3600UL
                     }
                 }
             };
@@ -351,6 +384,17 @@ internal static class Program
                    lookup.Game.Platforms.Count == 2 &&
                    lookup.Game.TotalPlaytimeSeconds == 53UL * 3600UL,
                 "The details-card store should read and aggregate the latest private Exophase snapshot.");
+            var searchMatches = store.SearchGames("last of us", 10);
+            Expect(searchMatches.Count == 1 &&
+                   searchMatches[0].MatchKey ==
+                       ExophaseActivityParser.NormalizeTitle("The Last of Us Part I") &&
+                   searchMatches[0].Platforms.Count == 2 &&
+                   store.SearchGames(string.Empty, 10).Count == 0,
+                "Game Edit should search the synchronized Exophase library without changing its snapshot.");
+            var fuzzyMatches = store.SearchGames("Assassin's Creed Black Flag Resynced", 10);
+            Expect(fuzzyMatches.Count == 1 &&
+                   fuzzyMatches[0].Title == "Assassin's Creed IV: Black Flag",
+                "Game Edit search should tolerate platform, edition, and release-title differences.");
 
             var changed = false;
             store.SnapshotChanged += () => changed = true;
@@ -372,6 +416,24 @@ internal static class Program
                    localTotal.TotalPlaytimeSeconds == 98UL * 3600UL &&
                    localTotal.Platforms.Any(item => item.Platform == "Osiris"),
                 "A local Osiris baseline should remain a distinct platform in the cross-platform total.");
+
+            var differentlyNamedGame = new Game
+            {
+                Id = Guid.NewGuid(),
+                Name = "The Last of Us Remake - Local Copy",
+                PluginId = Guid.Empty,
+                Playtime = 45UL * 3600UL
+            };
+            gameSettings.Save(differentlyNamedGame.Id, new ExophaseGameSettings
+            {
+                MatchedTitle = "The Last of Us Part I"
+            });
+            var manuallyMatchedTotal = resolver.Resolve(differentlyNamedGame, true);
+            Expect(manuallyMatchedTotal.UsesManualMatch &&
+                   manuallyMatchedTotal.MatchedTitle == "The Last of Us Part I" &&
+                   manuallyMatchedTotal.PositivePlatformCount == 3 &&
+                   manuallyMatchedTotal.TotalPlaytimeSeconds == 98UL * 3600UL,
+                "A saved Exophase title selection should resolve platform time for a differently named Osiris game.");
 
             var legacyImportedGame = new Game
             {
@@ -457,6 +519,7 @@ internal static class Program
             gameSettings.Save(localGame.Id, new ExophaseGameSettings
             {
                 Enabled = false,
+                MatchedTitle = "The Last of Us Part I",
                 Platforms = new List<ExophasePlatformSetting>
                 {
                     new ExophasePlatformSetting
@@ -470,9 +533,10 @@ internal static class Program
             });
             var reloadedSettings = new ExophaseGameSettingsStore(temporaryRoot).Load(localGame.Id);
             Expect(!reloadedSettings.Enabled &&
+                   reloadedSettings.MatchedTitle == "The Last of Us Part I" &&
                    reloadedSettings.Platforms.Count == 1 &&
                    reloadedSettings.Platforms[0].Platform == "Nintendo Switch",
-                "Per-game enable state and manual platform time should survive a restart.");
+                "Per-game enable state, explicit match, and manual platform time should survive a restart.");
         }
         finally
         {
