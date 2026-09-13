@@ -44,6 +44,18 @@ internal static class Program
             "Played-time progress should clamp completed estimates to a full bar.");
         Expect(CompletionTimeFormatting.ProgressPercent(25UL * 3600, 0) == 0d,
             "Missing completion estimates should leave the progress track empty.");
+        var playtimeGame = new Playnite.SDK.Models.Game
+        {
+            Id = Guid.NewGuid(),
+            Playtime = 7UL * 3600UL
+        };
+        Expect(EffectivePlaytimeResolver.Resolve(playtimeGame, null) == 7UL * 3600UL,
+            "HLTB should retain native playtime when Exophase is unavailable.");
+        Expect(EffectivePlaytimeResolver.Resolve(playtimeGame, _ => 98UL * 3600UL) == 98UL * 3600UL,
+            "HLTB should use the effective Exophase total when the extension supplies one.");
+        Expect(EffectivePlaytimeResolver.Resolve(playtimeGame, _ => throw new InvalidOperationException()) ==
+               7UL * 3600UL,
+            "HLTB should fall back to native playtime if the optional Exophase bridge fails.");
         var extensionRoot = Path.GetFullPath(Path.Combine(
             AppDomain.CurrentDomain.BaseDirectory,
             "..", "..", "..", ".."));
@@ -263,7 +275,7 @@ internal static class Program
                bindingRow.FallbackIconPath == "osiris.png" &&
                bindingRow.GameId == Guid.Parse("8bf41f44-2c57-4b45-8d41-c7dcd341e407") &&
                bindingRow.SourceGame != null,
-            "The rendered grid row should bind read-only local playtime without a TwoWay binding fault.");
+            "The rendered grid row should bind read-only effective playtime without a TwoWay binding fault.");
         var validationRows = globalView.GamesView.SourceCollection as
             System.Collections.ObjectModel.ObservableCollection<HowLongToBeatGameRow>;
         var alphaRow = new HowLongToBeatGameRow(
@@ -304,11 +316,11 @@ internal static class Program
                globalPageView.Contains("MainExtraSeconds=\"{Binding MainExtraSeconds}\"") &&
                globalPageView.Contains("CompletionistSeconds=\"{Binding CompletionistSeconds}\"") &&
                globalPageView.Contains("VirtualizingPanel.VirtualizationMode=\"Recycling\""),
-            "Each virtualized row should bind local playtime and all three stored completion milestones to one timeline.");
+            "Each virtualized row should bind effective playtime and all three stored completion milestones to one timeline.");
         Expect(globalPageView.Contains("<Setter Property=\"Height\" Value=\"94\" />") &&
                globalPageView.Contains("<Run Text=\"Time Played&#xA0;\"") &&
                globalPageView.Contains("Text=\"{Binding PlayedTimeText, Mode=OneWay}\""),
-            "Taller global-page rows should show local played time beneath every game title.");
+            "Taller global-page rows should show effective played time beneath every game title.");
         Expect(globalPageView.Contains("Header=\"GAME\"") &&
                globalPageView.Contains("Width=\"270\"") &&
                globalPageView.Contains("MinWidth=\"185\""),
@@ -476,6 +488,13 @@ internal static class Program
                 Directory.Delete(temporarySettingsPath, true);
             }
         }
+
+        Osiris.Extensions.Exophase.ExophasePlugin.Current.IsAvailable = true;
+        Osiris.Extensions.Exophase.ExophasePlugin.Current.EffectivePlaytimeSeconds = 98UL * 3600UL;
+        Expect(EffectivePlaytimeResolver.Resolve(playtimeGame) == 98UL * 3600UL &&
+               Osiris.Extensions.Exophase.ExophasePlugin.Current.LastGameId ==
+                   playtimeGame.Id.ToString("D"),
+            "HLTB should discover and invoke the optional Exophase runtime contract without a compile-time dependency.");
     }
 
     private static void RunLiveCheck()
@@ -501,6 +520,31 @@ internal static class Program
         if (!condition)
         {
             throw new InvalidOperationException(message);
+        }
+    }
+}
+
+namespace Osiris.Extensions.Exophase
+{
+    public sealed class ExophasePlugin
+    {
+        public static ExophasePlugin Current { get; } = new ExophasePlugin();
+
+        public ulong EffectivePlaytimeSeconds { get; set; }
+
+        public bool IsAvailable { get; set; }
+
+        public string LastGameId { get; private set; }
+
+        public ulong GetEffectivePlaytimeForOsiris(string gameId)
+        {
+            if (!IsAvailable)
+            {
+                throw new InvalidOperationException("The fake Exophase bridge is disabled.");
+            }
+
+            LastGameId = gameId;
+            return EffectivePlaytimeSeconds;
         }
     }
 }

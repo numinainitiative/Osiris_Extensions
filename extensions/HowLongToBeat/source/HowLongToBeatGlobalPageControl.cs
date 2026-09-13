@@ -628,7 +628,7 @@ namespace Osiris.Extensions.HowLongToBeat
             IconPath = iconPath;
             FallbackIconPath = fallbackIconPath;
             TimeProfile = timeProfile;
-            PlayedSeconds = game?.Playtime ?? 0;
+            PlayedSeconds = EffectivePlaytimeResolver.Resolve(game);
             PlayedTimeText = FormatPlayedTime(PlayedSeconds);
             MainStorySeconds = Math.Max(0, mainStorySeconds);
             MainExtraSeconds = Math.Max(0, mainExtraSeconds);

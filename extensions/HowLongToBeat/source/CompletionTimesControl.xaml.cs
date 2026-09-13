@@ -293,9 +293,10 @@ namespace Osiris.Extensions.HowLongToBeat
             MainStoryText = CompletionTimeFormatting.Format(mainStorySeconds);
             MainExtraText = CompletionTimeFormatting.Format(mainExtraSeconds);
             CompletionistText = CompletionTimeFormatting.Format(completionistSeconds);
-            MainStoryProgress = CompletionTimeFormatting.ProgressPercent(game?.Playtime ?? 0, mainStorySeconds);
-            MainExtraProgress = CompletionTimeFormatting.ProgressPercent(game?.Playtime ?? 0, mainExtraSeconds);
-            CompletionistProgress = CompletionTimeFormatting.ProgressPercent(game?.Playtime ?? 0, completionistSeconds);
+            var playedSeconds = EffectivePlaytimeResolver.Resolve(game);
+            MainStoryProgress = CompletionTimeFormatting.ProgressPercent(playedSeconds, mainStorySeconds);
+            MainExtraProgress = CompletionTimeFormatting.ProgressPercent(playedSeconds, mainExtraSeconds);
+            CompletionistProgress = CompletionTimeFormatting.ProgressPercent(playedSeconds, completionistSeconds);
             TimeProfileText = settings.TimeProfile;
             StatusMessage = string.Empty;
             HasResult = true;

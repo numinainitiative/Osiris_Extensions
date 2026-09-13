@@ -8,8 +8,11 @@ Game Details page:
 - Completionist
 
 Each estimate includes a played-time progress bar. The striped portion is time
-remaining and the solid white portion compares Osiris's locally stored playtime
-with that estimate, capped at a complete bar once the estimate is reached.
+remaining and the solid white portion compares Osiris's effective displayed
+playtime with that estimate, capped at a complete bar once the estimate is
+reached. When Exophase's optional **Display Total Time Played** setting is
+active for a game, this includes its safe cross-platform total; otherwise it
+uses the native Osiris or integrated-library time.
 
 The extension is intentionally small. It contains one custom Game Details
 control, one network client, and one persistent cache. Its General settings let
@@ -28,7 +31,7 @@ no account integration, telemetry, or third-party runtime dependencies.
 ## Identity
 
 - ID: `HowLongToBeat_fba3e63d-d1a1-4b9d-91c6-091a1220377d`
-- Version: `1.2.0`
+- Version: `1.2.1`
 - Author: `Osiris`
 - Type: `GenericPlugin`
 - Category: `Extras`
