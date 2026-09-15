@@ -9,8 +9,9 @@ namespace Osiris.Extensions.HowLongToBeat
 {
     public sealed class HowLongToBeatTimeline : FrameworkElement
     {
-        private const double TrackHeight = 12;
+        private const double TrackHeight = 14;
         private const double TrackTop = 49;
+        private const double SegmentGap = 6;
         private const double MinimumMarkerGapRatio = 0.13;
         private const double CompletionistStripeSpacing = 16;
         private const double CompletionistStripeOverscan = 6;
@@ -21,17 +22,10 @@ namespace Osiris.Extensions.HowLongToBeat
         private static readonly Brush CompletionistPatternBrush = EmptyTrackBrush;
         private static readonly Brush PlayedBrush =
             Freeze(new SolidColorBrush(Color.FromRgb(244, 245, 248)));
-        private static readonly Brush OutlineBrush =
-            Freeze(new SolidColorBrush(Color.FromRgb(98, 98, 98)));
         private static readonly Brush LabelBrush =
             Freeze(new SolidColorBrush(Color.FromRgb(119, 122, 130)));
         private static readonly Brush ValueBrush =
             Freeze(new SolidColorBrush(Color.FromRgb(240, 241, 247)));
-        private static readonly Pen MarkerOutlinePen =
-            Freeze(new Pen(new SolidColorBrush(Color.FromRgb(9, 9, 9)), 3));
-        private static readonly Pen MarkerPen =
-            Freeze(new Pen(new SolidColorBrush(Color.FromRgb(210, 212, 217)), 1));
-        private static readonly Pen TrackOutlinePen = Freeze(new Pen(OutlineBrush, 1));
         private static readonly Pen CompletionistStripePen = CreateCompletionistStripePen();
         private static readonly Typeface LabelTypeface =
             new Typeface(
@@ -106,36 +100,12 @@ namespace Osiris.Extensions.HowLongToBeat
             }
 
             var track = new Rect(1, TrackTop, Math.Max(0, ActualWidth - 2), TrackHeight);
-            var radius = TrackHeight / 2;
             var markers = GetMarkers(track);
-            var trackClip = new RectangleGeometry(track, radius, radius);
-            drawingContext.PushClip(trackClip);
-            drawingContext.DrawRectangle(EmptyTrackBrush, null, track);
-            DrawPatternSegments(drawingContext, track, markers);
+            var segments = CreateTrackSegments(track, markers);
+            DrawPatternSegments(drawingContext, segments);
 
-            var playedWidth = Math.Min(track.Width, PlayedSeconds * track.Width / maximum);
-            if (playedWidth > 0)
-            {
-                DrawPlayedFill(drawingContext, track, playedWidth, radius);
-            }
-
-            drawingContext.Pop();
-
-            foreach (var marker in markers)
-            {
-                if (marker.Seconds <= 0 || marker.Position >= track.Right - 0.5)
-                {
-                    continue;
-                }
-
-                var x = Math.Max(track.Left + 1, Math.Min(track.Right - 1, marker.Position));
-                var start = new Point(x, track.Top - 4);
-                var end = new Point(x, track.Bottom + 4);
-                drawingContext.DrawLine(MarkerOutlinePen, start, end);
-                drawingContext.DrawLine(MarkerPen, start, end);
-            }
-
-            drawingContext.DrawRoundedRectangle(null, TrackOutlinePen, track, radius, radius);
+            var playedRatio = Math.Min(1d, PlayedSeconds / (double)maximum);
+            DrawPlayedSegments(drawingContext, segments, playedRatio);
             DrawLegend(drawingContext, markers);
         }
 
@@ -249,8 +219,7 @@ namespace Osiris.Extensions.HowLongToBeat
             return result;
         }
 
-        private static void DrawPatternSegments(
-            DrawingContext drawingContext,
+        private static IReadOnlyList<TimelineSegment> CreateTrackSegments(
             Rect track,
             IEnumerable<TimelineMarker> markers)
         {
@@ -258,37 +227,87 @@ namespace Osiris.Extensions.HowLongToBeat
                 .Where(marker => marker.Seconds > 0)
                 .OrderBy(marker => marker.SemanticIndex)
                 .ToList();
-            var segmentLeft = track.Left;
+            var segments = new List<TimelineSegment>();
+            var startRatio = 0d;
             foreach (var marker in availableMarkers)
             {
-                var segmentRight = Math.Max(
-                    segmentLeft,
-                    Math.Min(track.Right, marker.Position));
-                if (segmentRight > segmentLeft)
+                var endRatio = Math.Max(
+                    startRatio,
+                    Math.Min(1d, (marker.Position - track.Left) / track.Width));
+                if (endRatio > startRatio)
                 {
-                    DrawPatternSegment(
-                        drawingContext,
-                        marker,
-                        new Rect(
-                            segmentLeft,
-                            track.Top,
-                            segmentRight - segmentLeft,
-                            track.Height));
+                    segments.Add(new TimelineSegment
+                    {
+                        Marker = marker,
+                        StartRatio = startRatio,
+                        EndRatio = endRatio
+                    });
                 }
 
-                segmentLeft = segmentRight;
+                startRatio = endRatio;
             }
 
-            if (segmentLeft < track.Right && availableMarkers.Count > 0)
+            if (startRatio < 1d && availableMarkers.Count > 0)
             {
-                DrawPatternSegment(
+                segments.Add(new TimelineSegment
+                {
+                    Marker = availableMarkers[availableMarkers.Count - 1],
+                    StartRatio = startRatio,
+                    EndRatio = 1d
+                });
+            }
+
+            var availableWidth = Math.Max(
+                0,
+                track.Width - (SegmentGap * Math.Max(0, segments.Count - 1)));
+            var left = track.Left;
+            for (var index = 0; index < segments.Count; index++)
+            {
+                var segment = segments[index];
+                var right = index == segments.Count - 1
+                    ? track.Right
+                    : left + (availableWidth * (segment.EndRatio - segment.StartRatio));
+                segment.Bounds = new Rect(
+                    left,
+                    track.Top,
+                    Math.Max(0, right - left),
+                    track.Height);
+                left = right + SegmentGap;
+            }
+
+            return segments;
+        }
+
+        private static void DrawPatternSegments(
+            DrawingContext drawingContext,
+            IEnumerable<TimelineSegment> segments)
+        {
+            foreach (var segment in segments)
+            {
+                DrawPatternSegment(drawingContext, segment.Marker, segment.Bounds);
+            }
+        }
+
+        private static void DrawPlayedSegments(
+            DrawingContext drawingContext,
+            IEnumerable<TimelineSegment> segments,
+            double playedRatio)
+        {
+            foreach (var segment in segments)
+            {
+                if (playedRatio <= segment.StartRatio || segment.EndRatio <= segment.StartRatio)
+                {
+                    continue;
+                }
+
+                var segmentPlayedRatio = Math.Min(
+                    1d,
+                    (playedRatio - segment.StartRatio) /
+                    (segment.EndRatio - segment.StartRatio));
+                DrawPlayedFill(
                     drawingContext,
-                    availableMarkers[availableMarkers.Count - 1],
-                    new Rect(
-                        segmentLeft,
-                        track.Top,
-                        track.Right - segmentLeft,
-                        track.Height));
+                    segment.Bounds,
+                    segment.Bounds.Width * segmentPlayedRatio);
             }
         }
 
@@ -308,14 +327,9 @@ namespace Osiris.Extensions.HowLongToBeat
             DrawingContext drawingContext,
             Rect segment)
         {
-            // Let the outer track clip, rather than this segment, cut the stripe
-            // at the top and bottom. Overscanning both endpoints makes the cut
-            // a sharp edge which meets the outline instead of exposing a cap.
-            drawingContext.PushClip(new RectangleGeometry(new Rect(
-                segment.Left,
-                segment.Top - CompletionistStripeOverscan,
-                segment.Width,
-                segment.Height + (CompletionistStripeOverscan * 2))));
+            // Overscan the stroke endpoints, then clip them to this independent
+            // bar so every stripe meets its sharp top and bottom without escaping.
+            drawingContext.PushClip(new RectangleGeometry(segment));
             for (var x = segment.Left - segment.Height;
                  x < segment.Right;
                  x += CompletionistStripeSpacing)
@@ -389,47 +403,12 @@ namespace Osiris.Extensions.HowLongToBeat
         private static void DrawPlayedFill(
             DrawingContext drawingContext,
             Rect track,
-            double playedWidth,
-            double radius)
+            double playedWidth)
         {
-            if (playedWidth >= track.Width - 0.01)
-            {
-                drawingContext.DrawRoundedRectangle(PlayedBrush, null, track, radius, radius);
-                return;
-            }
-
-            var right = track.Left + playedWidth;
-            var curveRadius = Math.Min(radius, playedWidth / 2d);
-            var geometry = new StreamGeometry();
-            using (var context = geometry.Open())
-            {
-                context.BeginFigure(
-                    new Point(track.Left + curveRadius, track.Top),
-                    true,
-                    true);
-                context.LineTo(new Point(right, track.Top), true, false);
-                context.LineTo(new Point(right, track.Bottom), true, false);
-                context.LineTo(new Point(track.Left + curveRadius, track.Bottom), true, false);
-                context.ArcTo(
-                    new Point(track.Left, track.Top + radius),
-                    new Size(curveRadius, radius),
-                    0,
-                    false,
-                    SweepDirection.Clockwise,
-                    true,
-                    false);
-                context.ArcTo(
-                    new Point(track.Left + curveRadius, track.Top),
-                    new Size(curveRadius, radius),
-                    0,
-                    false,
-                    SweepDirection.Clockwise,
-                    true,
-                    false);
-            }
-
-            geometry.Freeze();
-            drawingContext.DrawGeometry(PlayedBrush, null, geometry);
+            drawingContext.DrawRectangle(
+                PlayedBrush,
+                null,
+                new Rect(track.Left, track.Top, playedWidth, track.Height));
         }
 
         private FormattedText CreateText(string value, double fontSize, Brush brush)
@@ -535,6 +514,17 @@ namespace Osiris.Extensions.HowLongToBeat
             public double Position { get; set; }
             public Brush PatternBrush { get; set; }
             public int SemanticIndex { get; set; }
+        }
+
+        private sealed class TimelineSegment
+        {
+            public TimelineMarker Marker { get; set; }
+
+            public double StartRatio { get; set; }
+
+            public double EndRatio { get; set; }
+
+            public Rect Bounds { get; set; }
         }
 
     }

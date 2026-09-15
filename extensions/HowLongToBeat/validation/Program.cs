@@ -93,13 +93,13 @@ internal static class Program
                !cardView.Contains("#3F4249") &&
                !cardView.Contains("#454850"),
             "The card should use transparent icon frames and a compact neutral-grey striped track with a flat partial-fill edge and sealed full state.");
-        Expect(cardView.Contains("<StackPanel x:Name=\"ResultPanel\" Background=\"#000000\">") &&
+        Expect(cardView.Contains("<StackPanel x:Name=\"ResultPanel\" Background=\"#070707\">") &&
                cardView.Contains("x:Name=\"MainStoryRow\"") &&
                cardView.Contains("x:Name=\"MainExtraRow\"") &&
                cardView.Split(new[] { "Background=\"#090909\"" }, StringSplitOptions.None).Length - 1 == 2 &&
                cardView.Contains("x:Name=\"CompletionistRow\" Style=\"{StaticResource TimeRow}\" Margin=\"0\"") &&
                cardView.Contains("<Setter Property=\"Background\" Value=\"#101010\" />"),
-            "The first two rows should match the Overview background, the separators should be black, and Completionist should retain its existing background.");
+            "The row gaps should match the host card body while the three row surfaces retain their existing tones.");
         var bookIcon = File.ReadAllText(Path.Combine(extensionRoot, "source", "Icons", "book-open-check.svg"));
         var pickaxeIcon = File.ReadAllText(Path.Combine(extensionRoot, "source", "Icons", "pickaxe.svg"));
         var trophyIcon = File.ReadAllText(Path.Combine(extensionRoot, "source", "Icons", "trophy.svg"));
@@ -217,6 +217,8 @@ internal static class Program
                globalGamesGrid.EnableColumnVirtualization,
             "The global page should expose a virtualized three-column game library.");
         Expect(globalGamesGrid.Columns[0].Header as string == "ICON" &&
+               globalGamesGrid.Columns[0].Width.IsAbsolute &&
+               Math.Abs(globalGamesGrid.Columns[0].Width.Value - 94) < 0.01 &&
                globalGamesGrid.Columns[1].Header as string == "GAME" &&
                globalGamesGrid.Columns[2].Header as string == "HOW LONG TO BEAT",
             "The global library should contain only Icon, Game, and How Long To Beat columns.");
@@ -348,16 +350,24 @@ internal static class Program
                timelineCode.Contains("x += CompletionistStripeSpacing") &&
                timelineCode.Contains("segment.Top - CompletionistStripeOverscan") &&
                timelineCode.Contains("segment.Bottom + CompletionistStripeOverscan") &&
-               timelineCode.Contains("segment.Height + (CompletionistStripeOverscan * 2)") &&
+               timelineCode.Contains("PushClip(new RectangleGeometry(segment))") &&
                timelineCode.Contains("StartLineCap = PenLineCap.Flat") &&
                timelineCode.Contains("EndLineCap = PenLineCap.Flat") &&
-               timelineCode.Contains("marker.Position >= track.Right - 0.5") &&
                timelineCode.Contains("DrawPatternSegments") &&
                timelineCode.Contains("var segmentLeft = markerIndex > 0") &&
                timelineCode.Contains("CreateText(marker.Title, 15, LabelBrush)") &&
-               timelineCode.Contains("CreateText(CompletionTimeFormatting.Format(marker.Seconds), 16, ValueBrush)") &&
-               timelineCode.Contains("private const double TrackTop = 49") &&
-               timelineCode.Contains("new Point(left, 16)") &&
+                timelineCode.Contains("CreateText(CompletionTimeFormatting.Format(marker.Seconds), 16, ValueBrush)") &&
+                timelineCode.Contains("private const double TrackHeight = 14") &&
+                timelineCode.Contains("private const double SegmentGap = 6") &&
+                timelineCode.Contains("private const double TrackTop = 49") &&
+                timelineCode.Contains("CreateTrackSegments(track, markers)") &&
+                timelineCode.Contains("DrawPlayedSegments(drawingContext, segments, playedRatio)") &&
+                timelineCode.Contains("track.Width - (SegmentGap * Math.Max(0, segments.Count - 1))") &&
+                !timelineCode.Contains("new RectangleGeometry(track, radius, radius)") &&
+                !timelineCode.Contains("TrackOutlinePen") &&
+                !timelineCode.Contains("MarkerOutlinePen") &&
+                !timelineCode.Contains("MarkerPen") &&
+                timelineCode.Contains("new Point(left, 16)") &&
                timelineCode.Contains("new Point(left + title.Width + gap, 15)") &&
                globalPageView.Contains("TimeProfile=\"{Binding TimeProfile}\"") &&
                globalPageView.Contains("VerticalAlignment=\"Center\"") &&
@@ -368,7 +378,7 @@ internal static class Program
                !timelineCode.Contains("CreateHorizontalPatternBrush") &&
                !timelineCode.Contains("CreateSparseDiagonalPatternBrush") &&
                !timelineCode.Contains("CreateDotPatternBrush"),
-            "Completionist should use overscanned full-height diagonal strokes with sharp outline-clipped ends, while the timeline omits its terminal tick and unavailable labels and preserves semantic order.");
+            "Completionist should use overscanned full-height diagonal strokes, while every timeline section and played fill uses sharp independent bars with real gaps and preserves semantic order.");
         var battlefieldRatios = HowLongToBeatTimeline.CalculateSemanticMarkerRatios(
             88L * 3600,
             530L * 3600,

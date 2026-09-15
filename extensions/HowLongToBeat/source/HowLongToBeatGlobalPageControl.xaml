@@ -400,7 +400,7 @@
                           VirtualizingPanel.VirtualizationMode="Recycling">
                     <DataGrid.Columns>
                         <DataGridTemplateColumn Header="ICON"
-                                                Width="78"
+                                                Width="94"
                                                 CanUserSort="False">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>

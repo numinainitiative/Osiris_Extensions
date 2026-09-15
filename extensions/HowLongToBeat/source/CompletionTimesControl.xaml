@@ -110,7 +110,7 @@
     </PluginUserControl.Resources>
 
     <Grid>
-        <StackPanel x:Name="ResultPanel" Background="#000000">
+        <StackPanel x:Name="ResultPanel" Background="#070707">
             <Border x:Name="MainStoryRow"
                     Style="{StaticResource TimeRow}"
                     Background="#090909">
