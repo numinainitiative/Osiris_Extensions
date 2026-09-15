@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Osiris.Extensions.Exophase;
@@ -63,7 +65,8 @@ internal static class Program
                settingsView.FindName("AuthenticateButton") is Button &&
                settingsView.FindName("SignOutButton") is Button &&
                settingsView.FindName("ProfileReferenceTextBox") is TextBox &&
-               settingsView.FindName("SynchronizeButton") is Button &&
+               settingsView.FindName("UpdateDatabaseButton") is Button settingsUpdateButton &&
+               string.Equals(settingsUpdateButton.Content as string, "Update Database", StringComparison.Ordinal) &&
                settingsView.FindName("OsirisExtensionDangerZone") is Grid,
             "The settings view should expose account, extractor, and danger-zone actions.");
 
@@ -78,6 +81,11 @@ internal static class Program
             "..", "..", "..", ".."));
         var viewSource = File.ReadAllText(Path.Combine(extensionRoot, "source", "ExophaseSettingsView.xaml"));
         var authSource = File.ReadAllText(Path.Combine(extensionRoot, "source", "ExophaseAuthenticationService.cs"));
+        var globalPageView = File.ReadAllText(Path.Combine(extensionRoot, "source", "ExophaseGlobalPageControl.xaml"));
+        var globalPageCode = File.ReadAllText(Path.Combine(extensionRoot, "source", "ExophaseGlobalPageControl.cs"));
+        var platformTimelineCode = File.ReadAllText(Path.Combine(extensionRoot, "source", "ExophasePlatformTimeline.cs"));
+        var platformWheelCode = File.ReadAllText(Path.Combine(extensionRoot, "source", "ExophasePlatformWheel.cs"));
+        var globalPagePluginCode = File.ReadAllText(Path.Combine(extensionRoot, "source", "ExophasePlugin.cs"));
         Expect(viewSource.Contains("Width=\"760\"") &&
                viewSource.Contains("Width=\"44\" Height=\"24\"") &&
                viewSource.Contains("OverrideDisplayedPlaytime") &&
@@ -97,6 +105,386 @@ internal static class Program
                authSource.Contains("DeleteDomainCookies") &&
                !authSource.Contains("Password"),
             "Authentication should use the Middle Window webview and cookie-only session handling.");
+
+        var globalPage = new ExophaseGlobalPageSidebarItem();
+        var globalView = globalPage.Opened?.Invoke() as ExophaseGlobalPageControl;
+        var globalViewLayout = globalView?.Content as Grid;
+        var globalViewHeader = globalViewLayout?.Children
+            .OfType<FrameworkElement>()
+            .FirstOrDefault(element => Grid.GetRow(element) == 0);
+        var globalGamesGrid = globalView?.FindName("GamesGrid") as DataGrid;
+        var globalSortByCombo = globalView?.FindName("SortByCombo") as ComboBox;
+        var globalUpdateDatabaseButton = globalView?.FindName("UpdateDatabaseButton") as Button;
+        var globalLastDatabaseUpdateText = globalView?.FindName("LastDatabaseUpdateText") as TextBlock;
+        var globalSortToolbarGroup = globalView?.FindName("SortToolbarGroup") as StackPanel;
+        var globalUpdateToolbarGroup = globalView?.FindName("UpdateToolbarGroup") as StackPanel;
+        var globalPageScrollViewer = globalView?.FindName("PageScrollViewer") as ScrollViewer;
+        var globalScrollToolbar = globalView?.FindName("ScrollToolbar") as Grid;
+        var globalGamesTableContainer = globalView?.FindName("GamesTableContainer") as Border;
+        var tableLegendBar = globalView?.FindName("TableLegendBar") as Grid;
+        var fetchedGamesCountText = globalView?.FindName("FetchedGamesCountText") as TextBlock;
+        var noExophaseDataCountText = globalView?.FindName("NoExophaseDataCountText") as TextBlock;
+        var disabledGamesCountText = globalView?.FindName("DisabledGamesCountText") as TextBlock;
+        var fetchedGamesCountBrush = fetchedGamesCountText?.Foreground as System.Windows.Media.SolidColorBrush;
+        var noExophaseDataCountBrush = noExophaseDataCountText?.Foreground as System.Windows.Media.SolidColorBrush;
+        var disabledGamesCountBrush = disabledGamesCountText?.Foreground as System.Windows.Media.SolidColorBrush;
+        var globalStatisticsCard = globalView?.FindName("GlobalStatisticsCard") as Border;
+        var globalPlatformWheel = globalView?.FindName("GlobalPlatformWheel") as ExophasePlatformWheel;
+        var platformStatisticsItems = globalView?.FindName("PlatformStatisticsItems") as ItemsControl;
+        var globalTotalPlaytimeValue = globalView?.FindName("GlobalTotalPlaytimeValue") as TextBlock;
+        var globalTotalTrophiesValue = globalView?.FindName("GlobalTotalTrophiesValue") as TextBlock;
+        var globalPlatformsUsedValue = globalView?.FindName("GlobalPlatformsUsedValue") as TextBlock;
+        Expect(globalPage.OsirisGlobalPage &&
+               globalPage.Type == Playnite.SDK.Plugins.SiderbarItemType.View &&
+               string.Equals(globalPage.Title, "Exophase", StringComparison.Ordinal) &&
+               globalView != null &&
+               globalViewLayout != null &&
+               globalViewLayout.RowDefinitions.Count == 2 &&
+               globalViewLayout.RowDefinitions[0].Height.IsAbsolute &&
+               Math.Abs(globalViewLayout.RowDefinitions[0].Height.Value - 76) < 0.01 &&
+               globalViewHeader != null &&
+               globalViewHeader.Visibility == Visibility.Visible,
+            "Exophase should opt into the Osiris extension-page list using the fixed HLTB page shell.");
+        Expect(globalGamesGrid != null &&
+               !globalGamesGrid.AutoGenerateColumns &&
+               globalGamesGrid.Columns.Count == 4 &&
+               globalGamesGrid.EnableRowVirtualization &&
+               globalGamesGrid.EnableColumnVirtualization &&
+               string.Equals(globalGamesGrid.Columns[0].Header as string, "ICON", StringComparison.Ordinal) &&
+               globalGamesGrid.Columns[0].Width.IsAbsolute &&
+               Math.Abs(globalGamesGrid.Columns[0].Width.Value - 94) < 0.01 &&
+               string.Equals(globalGamesGrid.Columns[1].Header as string, "GAME", StringComparison.Ordinal) &&
+               globalGamesGrid.Columns[1].Width.IsAbsolute &&
+               Math.Abs(globalGamesGrid.Columns[1].Width.Value - 200) < 0.01 &&
+               string.Equals(
+                   globalGamesGrid.Columns[2].Header as string,
+                   "TOTAL PLAYTIME",
+                   StringComparison.Ordinal) &&
+               globalGamesGrid.Columns[2].Width.IsAbsolute &&
+               Math.Abs(globalGamesGrid.Columns[2].Width.Value - 140) < 0.01 &&
+               string.Equals(
+                   globalGamesGrid.Columns[3].Header as string,
+                   "PLAY TIME BY PLATFORM",
+                   StringComparison.Ordinal),
+            "The Exophase page should use a square icon field, game and total-playtime fields, and a flexible platform-time field.");
+        Expect(globalSortByCombo != null &&
+               globalSortByCombo.Items.Count == 2 &&
+               string.Equals(((ComboBoxItem)globalSortByCombo.Items[0]).Content as string, "Title", StringComparison.Ordinal) &&
+               string.Equals(((ComboBoxItem)globalSortByCombo.Items[1]).Content as string, "Total Playtime", StringComparison.Ordinal) &&
+               globalView.FindName("ShowOnlyPlayedToggle") == null &&
+               globalUpdateDatabaseButton != null &&
+               string.Equals(globalUpdateDatabaseButton.Content as string, "Update Database", StringComparison.Ordinal) &&
+               globalLastDatabaseUpdateText != null &&
+               string.Equals(globalLastDatabaseUpdateText.Text, "Never updated", StringComparison.Ordinal) &&
+               globalSortToolbarGroup != null &&
+               globalUpdateToolbarGroup != null &&
+               Math.Abs(globalSortToolbarGroup.Height - 38) < 0.01 &&
+               Math.Abs(globalUpdateToolbarGroup.Height - 38) < 0.01 &&
+               globalSortToolbarGroup.VerticalAlignment == VerticalAlignment.Top &&
+               globalUpdateToolbarGroup.VerticalAlignment == VerticalAlignment.Top &&
+               globalScrollToolbar != null &&
+               Math.Abs(globalScrollToolbar.Height - 66) < 0.01 &&
+               !globalPageView.Contains("HOW LONG TO BEAT") &&
+               !globalPageView.Contains("HowLongToBeatTimeline") &&
+               !globalPageView.Contains("Show only played games") &&
+               globalPageView.Contains("ExophasePlatformTimeline") &&
+               globalPageView.Contains("Segments=\"{Binding PlatformSegments}\"") &&
+               globalPageView.Contains("TrophyProgressRatio=\"{Binding TrophyProgressRatio}\"") &&
+               globalPageView.Contains("Text=\"{Binding TrophyCountText, Mode=OneWay}\"") &&
+               globalPageView.Contains("Text=\"{Binding PlayedTimeText, Mode=OneWay}\"") &&
+               globalPageView.Contains("Text=\"{Binding PlatformStatusText}\"") &&
+               globalPageCode.Contains("OnGameTitleClick") &&
+               globalPageCode.Contains("AttachSearchBox") &&
+               globalPageCode.Contains("activityResolver.Resolve(game, true)") &&
+               globalPageCode.Contains("ExophasePlatformVisualCatalog.Resolve(platform.Platform)") &&
+               globalPageCode.Contains("await settings.SynchronizeAsync()") &&
+               globalPageCode.Contains("activityStore?.GetSnapshotInfo()") &&
+               globalPagePluginCode.Contains("yield return globalPage"),
+            "The Exophase toolbar should retain Title and Total Playtime sorting, add the shared database update action and timestamp, and keep search and game navigation integrated.");
+        var formatReferenceNow = new DateTime(2026, 9, 14, 18, 0, 0);
+        Expect(ExophaseGlobalPageControl.FormatLastUpdated(DateTime.MinValue, formatReferenceNow) ==
+                   "Never updated" &&
+               ExophaseGlobalPageControl.FormatLastUpdated(
+                   new DateTime(2026, 9, 14, 15, 43, 0),
+                   formatReferenceNow) == "Last updated today at 15:43" &&
+               ExophaseGlobalPageControl.FormatLastUpdated(
+                   new DateTime(2026, 9, 13, 15, 43, 0),
+                   formatReferenceNow) == "Last updated yesterday at 15:43",
+            "The Exophase page should show a friendly persisted last-database-update timestamp beside its action.");
+        var platformStatistics = ExophaseGlobalPageControl.AggregatePlatformStatistics(
+            new[]
+            {
+                new ExophaseTimelineSegment { Platform = "Steam", PlaytimeSeconds = 3600 },
+                new ExophaseTimelineSegment { Platform = "PlayStation 4", PlaytimeSeconds = 3600 },
+                new ExophaseTimelineSegment { Platform = "Steam", PlaytimeSeconds = 7200 }
+             });
+        var osirisStatistics = ExophaseGlobalPageControl.AggregatePlatformStatistics(
+            new[]
+            {
+                new ExophaseTimelineSegment { Platform = "Osiris", PlaytimeSeconds = 3600 }
+            });
+        var osirisTagBrush = osirisStatistics.Single().TagBrush as System.Windows.Media.SolidColorBrush;
+        var osirisForegroundBrush = osirisStatistics.Single().LegendForegroundBrush as System.Windows.Media.SolidColorBrush;
+        var trophyRows = new[]
+        {
+            new ExophaseGameRow(
+                new Game { Name = "Battlefield 2042" },
+                null,
+                null,
+                0,
+                "19/34",
+                19,
+                34,
+                19d / 34d,
+                new List<ExophaseTimelineSegment>(),
+                string.Empty,
+                ExophaseGameDataState.Fetched),
+            new ExophaseGameRow(
+                new Game { Name = "God of War" },
+                null,
+                null,
+                0,
+                "37/37",
+                37,
+                37,
+                1d,
+                new List<ExophaseTimelineSegment>(),
+                string.Empty,
+                ExophaseGameDataState.Disabled),
+            new ExophaseGameRow(
+                new Game { Name = "No Exophase Data" },
+                null,
+                null,
+                0,
+                "—",
+                0,
+                0,
+                0d,
+                new List<ExophaseTimelineSegment>(),
+                "No Exophase data")
+        };
+        var gameDataSummary = ExophaseGlobalPageControl.CalculateGameDataSummary(trophyRows);
+        var hoverSegments = new[]
+        {
+            new ExophasePlatformSummaryItem { Percentage = 0.25d },
+            new ExophasePlatformSummaryItem { Percentage = 0.50d },
+            new ExophasePlatformSummaryItem { Percentage = 0.25d }
+        };
+        var legendHighlight = new ExophasePlatformSummaryItem
+        {
+            Platform = "Steam",
+            TagBrush = new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(52, 119, 154))
+        };
+        var originalLegendBrush = legendHighlight.LegendTagBrush;
+        legendHighlight.SetMuted(true);
+        var mutedLegendBrush = legendHighlight.LegendTagBrush;
+        var mutedLegendOpacity = legendHighlight.LegendOpacity;
+        legendHighlight.SetMuted(false);
+        Expect(platformStatistics.Count == 2 &&
+               platformStatistics[0].Platform == "Steam" &&
+               platformStatistics[0].PlaytimeSeconds == 10800UL &&
+               platformStatistics[0].PercentageText == "(75%)" &&
+               platformStatistics[1].Platform == "PlayStation 4" &&
+               platformStatistics[1].PlaytimeSeconds == 3600UL &&
+               platformStatistics[1].PercentageText == "(25%)" &&
+               globalStatisticsCard != null &&
+               Grid.GetColumn(globalStatisticsCard) == 0 &&
+               globalStatisticsCard.Parent is Grid statisticsColumns &&
+               statisticsColumns.ColumnDefinitions.Count == 2 &&
+               statisticsColumns.ColumnDefinitions[0].Width.IsAbsolute &&
+               Math.Abs(statisticsColumns.ColumnDefinitions[0].Width.Value - 660) < 0.01 &&
+               Math.Abs(statisticsColumns.MinHeight) < 0.01 &&
+               globalPlatformWheel != null &&
+               Math.Abs(globalPlatformWheel.Width - 400) < 0.01 &&
+               Math.Abs(globalPlatformWheel.Height - 400) < 0.01 &&
+               tableLegendBar != null &&
+               Math.Abs(tableLegendBar.Height - 62) < 0.01 &&
+               Math.Abs(tableLegendBar.Margin.Left - 24) < 0.01 &&
+               Math.Abs(tableLegendBar.Margin.Right - 24) < 0.01 &&
+               Math.Abs(tableLegendBar.Margin.Bottom - 18) < 0.01 &&
+               string.Equals(
+                   TextElement.GetFontFamily(tableLegendBar).Source,
+                   globalLastDatabaseUpdateText.FontFamily.Source,
+                   StringComparison.OrdinalIgnoreCase) &&
+               Math.Abs(TextElement.GetFontSize(tableLegendBar) - 17) < 0.01 &&
+               Math.Abs(TextElement.GetFontSize(tableLegendBar) - globalLastDatabaseUpdateText.FontSize) < 0.01 &&
+               TextElement.GetFontWeight(tableLegendBar) == globalLastDatabaseUpdateText.FontWeight &&
+               TextElement.GetFontWeight(tableLegendBar) == FontWeights.SemiBold &&
+               fetchedGamesCountText != null &&
+               noExophaseDataCountText != null &&
+               disabledGamesCountText != null &&
+               string.Equals(
+                   fetchedGamesCountText.Text,
+                   "0 Games with Exophase data",
+                   StringComparison.Ordinal) &&
+               string.Equals(
+                   noExophaseDataCountText.Text,
+                   "0 With no Exophase data",
+                   StringComparison.Ordinal) &&
+               string.Equals(
+                   disabledGamesCountText.Text,
+                   "0 Games with Exophase manually disabled",
+                   StringComparison.Ordinal) &&
+               fetchedGamesCountBrush != null &&
+               fetchedGamesCountBrush.Color == System.Windows.Media.Color.FromRgb(119, 122, 130) &&
+               noExophaseDataCountBrush != null &&
+               noExophaseDataCountBrush.Color == System.Windows.Media.Color.FromRgb(119, 122, 130) &&
+               disabledGamesCountBrush != null &&
+               disabledGamesCountBrush.Color == System.Windows.Media.Color.FromRgb(119, 122, 130) &&
+               gameDataSummary.Fetched == 1 &&
+               gameDataSummary.NoData == 1 &&
+               gameDataSummary.Disabled == 1 &&
+               globalTotalPlaytimeValue != null &&
+               globalTotalTrophiesValue != null &&
+               globalPlatformsUsedValue != null &&
+               platformStatisticsItems != null &&
+               Math.Abs(platformStatisticsItems.Width - 620) < 0.01 &&
+               platformStatisticsItems.Parent is Grid &&
+               globalScrollToolbar != null &&
+               globalScrollToolbar.Parent is StackPanel scrollContent &&
+               ReferenceEquals(globalPageScrollViewer.Content, scrollContent) &&
+               !ReferenceEquals(originalLegendBrush, mutedLegendBrush) &&
+               Math.Abs(mutedLegendOpacity - 0.58d) < 0.001 &&
+               ReferenceEquals(legendHighlight.LegendTagBrush, originalLegendBrush) &&
+               Math.Abs(legendHighlight.LegendOpacity - 1d) < 0.001 &&
+               osirisStatistics.Single().UseOsirisLogo &&
+               osirisTagBrush != null &&
+               osirisTagBrush.Color == System.Windows.Media.Color.FromRgb(240, 241, 247) &&
+               osirisForegroundBrush != null &&
+               osirisForegroundBrush.Color == System.Windows.Media.Color.FromRgb(9, 9, 9) &&
+               ExophaseGlobalPageControl.FormatTotalTrophies(trophyRows) == "56/71" &&
+               globalPageScrollViewer != null &&
+               globalPageScrollViewer.VerticalScrollBarVisibility == ScrollBarVisibility.Auto &&
+               globalGamesTableContainer != null &&
+               Math.Abs(ExophaseGlobalPageControl.CalculateGamesTableHeight(900) - 720) < 0.01 &&
+               Math.Abs(ExophaseGlobalPageControl.CalculateGamesTableHeight(500) - 520) < 0.01 &&
+               globalPageView.Contains("x:Name=\"GlobalPlatformWheel\"") &&
+               globalPageView.Contains("Text=\"PLAYTIME STATISTICS\"") &&
+               globalPageView.Contains("Text=\"Trophy progress\"") &&
+               globalPageView.Contains("Text=\"All trophies achieved\"") &&
+               globalPageView.Contains("Text=\"0 Games with Exophase data\"") &&
+               globalPageView.Contains("Text=\"0 With no Exophase data\"") &&
+               globalPageView.Contains("Text=\"0 Games with Exophase manually disabled\"") &&
+               !globalPageView.Contains("Fill=\"#318DB4\"") &&
+               globalPageView.Contains("Fill=\"#F0F1F7\"") &&
+               globalPageCode.Contains("\" Games with Exophase data\"") &&
+               globalPageCode.Contains("\" With no Exophase data\"") &&
+               globalPageCode.Contains("\" Games with Exophase manually disabled\"") &&
+               globalPageView.Contains("ItemsSource=\"{Binding PlatformStatistics}\"") &&
+               !globalPageView.Contains("<Grid MinHeight=\"780\">") &&
+               globalPageView.Contains("<ColumnDefinition Width=\"660\" />") &&
+               globalPageView.Contains("<ColumnDefinition Width=\"420\" />") &&
+               globalPageView.Contains("<ColumnDefinition Width=\"200\" />") &&
+               globalPageView.Contains("<RowDefinition Height=\"460\" />") &&
+               globalPageView.Contains("<UniformGrid Columns=\"2\" />") &&
+               !globalPageView.Contains("Path=(ItemsControl.AlternationIndex)") &&
+               globalPageView.Contains("x:Name=\"PlatformStatisticsItems\"") &&
+               globalPageView.Contains("x:Name=\"GlobalTotalPlaytimeValue\"") &&
+               globalPageView.Contains("x:Name=\"GlobalTotalTrophiesValue\"") &&
+               globalPageView.Contains("x:Name=\"GlobalPlatformsUsedValue\"") &&
+               globalPageView.Contains("MouseEnter=\"OnPlatformLegendMouseEnter\"") &&
+               globalPageView.Contains("Background=\"{Binding LegendTagBrush}\"") &&
+               globalPageView.Contains("Fill=\"{Binding LegendForegroundBrush}\"") &&
+               globalPageView.Contains("Foreground=\"{Binding LegendForegroundBrush}\"") &&
+               globalPageCode.Contains("OnWheelHoveredPlatformChanged") &&
+               globalPageCode.Contains("SetHighlightedPlatform") &&
+               globalPageCode.Contains("PageScrollViewer.ActualHeight - toolbarHeight") &&
+               platformWheelCode.Contains("CreateRingSegment") &&
+               platformWheelCode.Contains("TimeSpan.FromSeconds(5)") &&
+               platformWheelCode.Contains("MutedSegmentBrush") &&
+               platformWheelCode.Contains("AnimateHoverExpansion(9d)") &&
+               platformWheelCode.Contains("outerRadius * 0.7465d") &&
+               platformWheelCode.Contains("HighlightedPlatformProperty") &&
+               platformWheelCode.Contains("HoveredPlatformChanged") &&
+               platformWheelCode.Contains("rotationTimer.Stop()") &&
+               ExophasePlatformWheel.FindSegmentAtAngle(hoverSegments, 45d) == 0 &&
+               ExophasePlatformWheel.FindSegmentAtAngle(hoverSegments, 180d) == 1 &&
+               ExophasePlatformWheel.FindSegmentAtAngle(hoverSegments, 315d) == 2,
+            "The Exophase statistics card should pair an interactive rotating platform wheel with global totals and a natural-height, two-column legend without nested scrolling or wasted card width.");
+        var platformRatios = ExophasePlatformTimeline.CalculateSegmentRatios(
+            new ulong[] { 3600, 7200, 3600 });
+        Expect(platformRatios.Length == 3 &&
+               Math.Abs(platformRatios[0] - 0.25) < 0.0001 &&
+               Math.Abs(platformRatios[1] - 0.5) < 0.0001 &&
+               Math.Abs(platformRatios[2] - 0.25) < 0.0001 &&
+                   ExophasePlatformTimeline.CalculateSegmentRatios(new ulong[] { 0, 0 }).Length == 0,
+            "The global-page bar should divide its full width in direct proportion to positive platform play time.");
+        Expect(ExophasePlatformTimeline.CalculateTrophyProgressRatio(23, 64) > 0.359 &&
+               ExophasePlatformTimeline.CalculateTrophyProgressRatio(23, 64) < 0.360 &&
+               ExophasePlatformTimeline.CalculateTrophyProgressRatio(0, 64) == 0d &&
+               ExophasePlatformTimeline.CalculateTrophyProgressRatio(80, 64) == 1d &&
+               platformTimelineCode.Contains("TrophyProgressPen") &&
+               platformTimelineCode.Contains("new DashStyle(new[] { 3d, 2d }, 0)") &&
+               platformTimelineCode.Contains("track.Width * ratio") &&
+               platformTimelineCode.Contains("track.Left - TrophyOutlineOffset") &&
+               platformTimelineCode.Contains("track.Right + TrophyOutlineOffset") &&
+               platformTimelineCode.Contains("if (ratio >= 1d)") &&
+               platformTimelineCode.Contains("CompletedTrophyProgressPen") &&
+               platformTimelineCode.Contains("TrophyProgressRatio >= 1d") &&
+               !platformTimelineCode.Contains("CompletedTrophyGlowBrush") &&
+               trophyRows[1].IsTrophyComplete &&
+               !trophyRows[0].IsTrophyComplete,
+            "The Exophase bar should overlay trophy completion as a dense, evenly offset dashed frame that stays open on the right until 100 percent.");
+        Expect(ExophasePlatformTimeline.FormatPercentage(0.25) == "(25%)" &&
+               ExophasePlatformTimeline.FormatPercentage(0.526) == "(53%)" &&
+               ExophasePlatformTimeline.FormatPercentage(2) == "(100%)" &&
+               globalPageCode.Contains("IconGeometry = visual.IconGeometry") &&
+               globalPageCode.Contains("UseOsirisLogo = visual.UseOsirisLogo") &&
+               globalPageCode.Contains("CreateTagBrush(visual.Brush)") &&
+               globalPageCode.Contains("visual.UseOsirisLogo") &&
+               platformTimelineCode.Contains("OsirisTagForegroundBrush") &&
+               platformTimelineCode.Contains("PushOpacityMask(OsirisLogoMaskBrush)") &&
+               globalPageCode.Contains("timeline.TotalPlaytimeSeconds"),
+            "Platform labels should show a percentage and reuse the card's monochrome platform marks inside brand-coloured tags.");
+        Expect(ExophaseGlobalPageControl.FormatTrophyCount(0, 64) == "0/64" &&
+               ExophaseGlobalPageControl.FormatTrophyCount(1, 64) == "1/64" &&
+               ExophaseGlobalPageControl.FormatTrophyCount(23, 64) == "23/64" &&
+               globalPageView.Contains("Setter Property=\"Stroke\" Value=\"#777A82\"") &&
+               globalPageView.Contains("Binding IsTrophyComplete") &&
+               globalPageView.Contains("CompletedTrophyBrush") &&
+               !globalPageView.Contains("CompletedTrophyGlowBrush") &&
+               globalPageView.Contains("FontSize=\"16\"") &&
+               globalPageView.Contains("StrokeLineJoin=\"Round\""),
+            "The Game column should show a dim trophy icon with Exophase's compact earned/total award count.");
+        var selectedTrophyPlatform = ExophaseGlobalPageControl.SelectTrophyPlatform(
+            new[]
+            {
+                new ExophaseResolvedPlatform
+                {
+                    Platform = "Steam",
+                    EarnedAwards = 31,
+                    TotalAwards = 79
+                },
+                new ExophaseResolvedPlatform
+                {
+                    Platform = "PlayStation 4",
+                    EarnedAwards = 53,
+                    TotalAwards = 78
+                },
+                new ExophaseResolvedPlatform
+                {
+                    Platform = "Osiris",
+                    EarnedAwards = 99,
+                    TotalAwards = 99,
+                    IsBaseline = true
+                }
+            });
+        Expect(selectedTrophyPlatform != null &&
+               selectedTrophyPlatform.Platform == "PlayStation 4" &&
+               ExophaseGlobalPageControl.FormatTrophyCount(
+                   selectedTrophyPlatform.EarnedAwards,
+                   selectedTrophyPlatform.TotalAwards) == "53/78" &&
+               globalPageCode.Contains("SelectTrophyPlatform(editableActivity.Platforms)"),
+            "Cross-platform trophy sets should use one representative Exophase platform instead of summing duplicate achievements.");
+        Expect(platformTimelineCode.Contains("private const double TrackHeight = 14") &&
+               platformTimelineCode.Contains("private const double SegmentGap = 6") &&
+               platformTimelineCode.Contains("track.Width - totalGapWidth") &&
+               !platformTimelineCode.Contains("new RectangleGeometry(track, radius, radius)") &&
+               !platformTimelineCode.Contains("TrackOutlinePen") &&
+               !platformTimelineCode.Contains("SegmentDividerPen") &&
+               !platformTimelineCode.Contains("SegmentDividerOutlinePen"),
+            "The Exophase platform bar should render sharp independent rectangles separated by real empty gaps.");
 
         var settingsSource = File.ReadAllText(Path.Combine(extensionRoot, "source", "ExophaseSettings.cs"));
         var settingsViewSource = File.ReadAllText(Path.Combine(extensionRoot, "source", "ExophaseSettingsView.xaml.cs"));
@@ -297,7 +685,10 @@ internal static class Program
             "source",
             "ExophaseActivityControl.xaml.cs"));
         var pluginSource = File.ReadAllText(Path.Combine(extensionRoot, "source", "ExophasePlugin.cs"));
-        Expect(controlView.Contains("ItemsSource=\"{Binding Platforms}\"") &&
+        Expect(controlView.Contains("x:Name=\"ActivityPanel\"") &&
+               controlView.Contains("ItemsSource=\"{Binding Platforms}\"") &&
+               controlView.Contains("Background=\"#070707\"") &&
+               !controlView.Contains("Background=\"#000000\"") &&
                controlView.Contains("x:Key=\"PlatformRow\"") &&
                controlView.Contains("Padding\" Value=\"20,15\"") &&
                controlView.Contains("Width\" Value=\"60\"") &&
@@ -338,7 +729,7 @@ internal static class Program
                pluginSource.Contains("ActivityControlName = \"ActivityViewControl\"") &&
                pluginSource.Contains("activityResolver") &&
                pluginSource.Contains("gameSettingsStore"),
-            "Exophase should clone the HLTB row geometry and use the official Osiris logo for the Osiris platform row.");
+            "Exophase should clone the HLTB row geometry, match its row gaps to the host card body, and use the official Osiris logo for the Osiris platform row.");
 
         var temporaryRoot = Path.Combine(Path.GetTempPath(), "osiris-exophase-card-" + Guid.NewGuid());
         Directory.CreateDirectory(temporaryRoot);
@@ -408,6 +799,11 @@ internal static class Program
                 Path.Combine(temporaryRoot, "exophase-activity-latest.json"),
                 JsonConvert.SerializeObject(snapshot));
             var store = new ExophaseActivityStore(temporaryRoot);
+            var snapshotInfo = store.GetSnapshotInfo();
+            Expect(snapshotInfo.HasSnapshot &&
+                   !snapshotInfo.SnapshotIsInvalid &&
+                   snapshotInfo.FetchedUtc == snapshot.FetchedUtc,
+                "The activity store should expose the persisted database timestamp without requiring a game lookup.");
             var lookup = store.FindGame("The Last of Us: Part I");
             Expect(lookup.HasSnapshot &&
                    !lookup.SnapshotIsInvalid &&
@@ -489,9 +885,11 @@ internal static class Program
                    multiEditionTotal.TotalPlaytimeSeconds == 108UL * 3600UL &&
                    multiEditionTotal.Platforms.Single(item => item.Platform == "PlayStation 4").PlaytimeSeconds ==
                        75UL * 3600UL &&
+                   multiEditionTotal.Platforms.Single(item => item.Platform == "PlayStation 4").EarnedAwards == 20 &&
+                   multiEditionTotal.Platforms.Single(item => item.Platform == "PlayStation 4").TotalAwards == 50 &&
                    multiEditionTotal.Platforms.Single(item => item.Platform == "Steam").PlaytimeSeconds ==
                        25UL * 3600UL,
-                "Multiple Exophase editions should combine their platform activity without losing the local Osiris baseline.");
+                "Multiple Exophase editions should combine platform playtime without duplicating one platform's trophy set or losing the local Osiris baseline.");
 
             var legacyImportedGame = new Game
             {

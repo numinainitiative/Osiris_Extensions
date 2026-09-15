@@ -68,6 +68,20 @@ namespace Osiris.Extensions.Exophase
             }
         }
 
+        public ExophaseActivityLookup GetSnapshotInfo()
+        {
+            EnsureCurrent();
+            lock (syncRoot)
+            {
+                return new ExophaseActivityLookup
+                {
+                    HasSnapshot = hasSnapshot,
+                    SnapshotIsInvalid = snapshotIsInvalid,
+                    FetchedUtc = fetchedUtc
+                };
+            }
+        }
+
         public List<ExophaseGameAggregate> SearchGames(string query, int maximumResults = 50)
         {
             EnsureCurrent();

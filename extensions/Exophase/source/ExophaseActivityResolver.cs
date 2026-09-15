@@ -252,8 +252,8 @@ namespace Osiris.Extensions.Exophase
                     {
                         Platform = first.Platform,
                         PlaytimeSeconds = SaturatingSum(group.Select(item => item.PlaytimeSeconds)),
-                        EarnedAwards = SaturatingIntSum(group.Select(item => item.EarnedAwards)),
-                        TotalAwards = SaturatingIntSum(group.Select(item => item.TotalAwards))
+                        EarnedAwards = group.Max(item => Math.Max(0, item.EarnedAwards)),
+                        TotalAwards = group.Max(item => Math.Max(0, item.TotalAwards))
                     };
                 })
                 .ToList();
@@ -292,19 +292,5 @@ namespace Osiris.Extensions.Exophase
             return total;
         }
 
-        private static int SaturatingIntSum(IEnumerable<int> values)
-        {
-            long total = 0;
-            foreach (var value in values)
-            {
-                total += Math.Max(0, value);
-                if (total >= int.MaxValue)
-                {
-                    return int.MaxValue;
-                }
-            }
-
-            return (int)total;
-        }
     }
 }

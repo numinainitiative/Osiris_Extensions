@@ -21,6 +21,7 @@ namespace Osiris.Extensions.Exophase
         private readonly ExophaseActivityStore activityStore;
         private readonly ExophaseGameSettingsStore gameSettingsStore;
         private readonly ExophaseActivityResolver activityResolver;
+        private readonly ExophaseGlobalPageSidebarItem globalPage;
 
         public static ExophasePlugin Current { get; private set; }
 
@@ -40,6 +41,13 @@ namespace Osiris.Extensions.Exophase
             activityResolver = new ExophaseActivityResolver(activityStore, gameSettingsStore);
             settings = LoadPluginSettings<ExophaseSettings>() ?? new ExophaseSettings();
             settings.Attach(this, new ExophaseAuthenticationService(api));
+            globalPage = new ExophaseGlobalPageSidebarItem(
+                api,
+                this,
+                activityStore,
+                gameSettingsStore,
+                activityResolver,
+                settings);
 
             AddCustomElementSupport(new AddCustomElementSupportArgs
             {
@@ -59,6 +67,11 @@ namespace Osiris.Extensions.Exophase
                     activityResolver,
                     settings)
                 : null;
+        }
+
+        public override IEnumerable<SidebarItem> GetSidebarItems()
+        {
+            yield return globalPage;
         }
 
         public override ISettings GetSettings(bool firstRunSettings)

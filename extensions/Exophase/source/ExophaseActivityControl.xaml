@@ -45,7 +45,7 @@
     <Grid>
         <ItemsControl x:Name="ActivityPanel"
                       ItemsSource="{Binding Platforms}"
-                      Background="#000000"
+                      Background="#070707"
                       ClipToBounds="True">
             <ItemsControl.Style>
                 <Style TargetType="ItemsControl">

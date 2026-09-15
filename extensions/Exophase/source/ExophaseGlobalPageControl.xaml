@@ -1,0 +1,866 @@
+<UserControl x:Class="Osiris.Extensions.Exophase.ExophaseGlobalPageControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Osiris.Extensions.Exophase"
+             Background="#090909"
+             HorizontalContentAlignment="Stretch"
+             VerticalContentAlignment="Stretch"
+             TextOptions.TextFormattingMode="Display"
+             TextOptions.TextRenderingMode="ClearType">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
+        <SolidColorBrush x:Key="CompletedTrophyBrush" Color="#FFD34E" />
+
+        <Style x:Key="LibraryToolbarComboBoxItem" TargetType="ComboBoxItem">
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="Foreground" Value="#D5D6DC" />
+            <Setter Property="FontFamily" Value="Rajdhani" />
+            <Setter Property="FontSize" Value="17" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="ItemBackground"
+                                Padding="{TemplateBinding Padding}"
+                                Background="Transparent"
+                                CornerRadius="5">
+                            <ContentPresenter HorizontalAlignment="Left"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="ItemBackground" Property="Background" Value="#1A1A1A" />
+                                <Setter Property="Foreground" Value="#F0F1F7" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBackground" Property="Background" Value="#1A1A1A" />
+                                <Setter Property="Foreground" Value="#F0F1F7" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="LibraryToolbarComboBox" TargetType="ComboBox">
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#282828" />
+            <Setter Property="Background" Value="#0B0B0B" />
+            <Setter Property="Foreground" Value="#D5D6DC" />
+            <Setter Property="FontFamily" Value="Rajdhani" />
+            <Setter Property="FontSize" Value="17" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="Padding" Value="14,0,34,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="ItemContainerStyle" Value="{StaticResource LibraryToolbarComboBoxItem}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="Chrome"
+                                    Height="{TemplateBinding Height}"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="8" />
+                            <ToggleButton Focusable="False"
+                                          ClickMode="Press"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Grid Background="Transparent">
+                                            <TextBlock Margin="0,0,14,0"
+                                                       HorizontalAlignment="Right"
+                                                       VerticalAlignment="Center"
+                                                       Text="&#xE70D;"
+                                                       FontFamily="Segoe MDL2 Assets"
+                                                       FontSize="11"
+                                                       Foreground="#777B84" />
+                                        </Grid>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <ContentPresenter HorizontalAlignment="Left"
+                                              VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"
+                                              IsHitTestVisible="False"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" />
+                            <Popup x:Name="PART_Popup"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   Placement="Bottom"
+                                   VerticalOffset="6"
+                                   Focusable="False"
+                                   AllowsTransparency="True">
+                                <Grid MinWidth="{TemplateBinding ActualWidth}"
+                                      MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                      SnapsToDevicePixels="True">
+                                    <Border Background="#111111"
+                                            BorderBrush="#282828"
+                                            BorderThickness="1"
+                                            CornerRadius="8">
+                                        <Border.Effect>
+                                            <DropShadowEffect Color="#000000"
+                                                              BlurRadius="14"
+                                                              ShadowDepth="4"
+                                                              Opacity="0.55" />
+                                        </Border.Effect>
+                                    </Border>
+                                    <ScrollViewer Margin="4,0,0,0"
+                                                  Padding="0"
+                                                  HorizontalScrollBarVisibility="Hidden"
+                                                  VerticalScrollBarVisibility="Auto">
+                                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"
+                                                        SnapsToDevicePixels="True" />
+                                    </ScrollViewer>
+                                </Grid>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#343434" />
+                                <Setter Property="Foreground" Value="#F0F1F7" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#3A3A3A" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.6" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="LibraryToolbarSwitch" TargetType="CheckBox">
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Grid Width="44" Height="24" Background="Transparent">
+                            <Border x:Name="ToggleTrack"
+                                    Background="Transparent"
+                                    BorderBrush="#34363D"
+                                    BorderThickness="1"
+                                    CornerRadius="12" />
+                            <Ellipse x:Name="ToggleThumb"
+                                     Width="18"
+                                     Height="18"
+                                     Margin="3"
+                                     HorizontalAlignment="Left"
+                                     VerticalAlignment="Center"
+                                     Fill="#9EA0A6" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ToggleTrack" Property="BorderBrush" Value="#555860" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="ToggleTrack" Property="Background" Value="#1B1B1B" />
+                                <Setter TargetName="ToggleTrack" Property="BorderBrush" Value="#666666" />
+                                <Setter TargetName="ToggleThumb" Property="HorizontalAlignment" Value="Right" />
+                                <Setter TargetName="ToggleThumb" Property="Fill" Value="#F7F8FA" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="LibraryColumnHeader" TargetType="DataGridColumnHeader">
+            <Setter Property="Height" Value="44" />
+            <Setter Property="Padding" Value="18,0" />
+            <Setter Property="Background" Value="#111111" />
+            <Setter Property="BorderBrush" Value="#242424" />
+            <Setter Property="BorderThickness" Value="0,0,1,1" />
+            <Setter Property="Foreground" Value="#777A82" />
+            <Setter Property="FontFamily" Value="Rajdhani" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="LibraryRow" TargetType="DataGridRow">
+            <Setter Property="Height" Value="94" />
+            <Setter Property="Background" Value="#090909" />
+            <Setter Property="Foreground" Value="#F0F1F7" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Style.Triggers>
+                <Trigger Property="AlternationIndex" Value="1">
+                    <Setter Property="Background" Value="#0C0C0C" />
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#121212" />
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#161616" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="LibraryCell" TargetType="DataGridCell">
+            <Setter Property="Padding" Value="18,0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="#181818" />
+            <Setter Property="BorderThickness" Value="0,0,1,1" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridCell">
+                        <Border Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="GameTitleButton" TargetType="Button">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="#F0F1F7" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="Center" />
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="OsirisActionButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="38" />
+            <Setter Property="Padding" Value="18,0" />
+            <Setter Property="Background" Value="#111111" />
+            <Setter Property="BorderBrush" Value="#252525" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Foreground" Value="#F3F4F8" />
+            <Setter Property="FontFamily" Value="{DynamicResource FontFamily}" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ActionBackground"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="7">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ActionBackground" Property="Background" Value="#171717" />
+                                <Setter TargetName="ActionBackground" Property="BorderBrush" Value="#363636" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ActionBackground" Property="Background" Value="#1A1A1A" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.55" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid x:Name="PageLayout" ClipToBounds="True">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="76" MinHeight="76" MaxHeight="76" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <ContentControl x:Name="FixedHeaderHost"
+                        Grid.Row="0"
+                        MinHeight="76"
+                        MaxHeight="76"
+                        HorizontalContentAlignment="Stretch"
+                        VerticalContentAlignment="Top"
+                        Visibility="Visible" />
+
+        <Grid Grid.Row="1" Background="#090909">
+            <ScrollViewer x:Name="PageScrollViewer"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="28,0,28,28">
+            <Grid x:Name="ScrollToolbar"
+                  Height="66"
+                  Margin="24,23,24,0"
+                  VerticalAlignment="Top"
+                  TextElement.FontFamily="Rajdhani"
+                  TextElement.FontSize="17"
+                  TextElement.FontWeight="SemiBold">
+                <StackPanel x:Name="SortToolbarGroup"
+                            Height="38"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Top">
+                    <TextBlock Text="Sort by"
+                               VerticalAlignment="Center"
+                               Margin="0,0,10,0"
+                               Foreground="#9C9C9C" />
+                    <ComboBox x:Name="SortByCombo"
+                              Width="164"
+                              Height="38"
+                              MaxDropDownHeight="464"
+                              Style="{StaticResource LibraryToolbarComboBox}"
+                              IsTextSearchEnabled="False">
+                        <ComboBoxItem Content="Title" Tag="Title" />
+                        <ComboBoxItem Content="Total Playtime" Tag="TimePlayed" />
+                    </ComboBox>
+                </StackPanel>
+
+                <StackPanel x:Name="UpdateToolbarGroup"
+                            Height="38"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Top">
+                    <TextBlock x:Name="LastDatabaseUpdateText"
+                               Margin="0,0,18,0"
+                               VerticalAlignment="Center"
+                               Text="Never updated"
+                               Foreground="#777A82" />
+                    <Button x:Name="UpdateDatabaseButton"
+                            Content="Update Database"
+                            Style="{StaticResource OsirisActionButtonStyle}"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Top"
+                            Click="OnUpdateDatabaseClick" />
+                </StackPanel>
+            </Grid>
+
+            <Border x:Name="GamesTableContainer"
+                    Height="640"
+                    MinHeight="520"
+                    Margin="0"
+                    Background="#090909"
+                    BorderBrush="#242424"
+                    BorderThickness="1"
+                    CornerRadius="0"
+                    ClipToBounds="True">
+                <Grid Background="#090909">
+                <DataGrid x:Name="GamesGrid"
+                          ItemsSource="{Binding GamesView}"
+                          AutoGenerateColumns="False"
+                          AlternationCount="2"
+                          Background="#090909"
+                          BorderThickness="0"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          CanUserReorderColumns="False"
+                          CanUserResizeRows="False"
+                          CanUserSortColumns="False"
+                          CellStyle="{StaticResource LibraryCell}"
+                          ColumnHeaderStyle="{StaticResource LibraryColumnHeader}"
+                          EnableColumnVirtualization="True"
+                          EnableRowVirtualization="True"
+                          GridLinesVisibility="None"
+                          HeadersVisibility="Column"
+                          HorizontalGridLinesBrush="Transparent"
+                          HorizontalScrollBarVisibility="Disabled"
+                          IsReadOnly="True"
+                          RowHeaderWidth="0"
+                          RowStyle="{StaticResource LibraryRow}"
+                          SelectionMode="Single"
+                          SelectionUnit="FullRow"
+                          VerticalScrollBarVisibility="Auto"
+                          VirtualizingPanel.IsVirtualizing="True"
+                          VirtualizingPanel.ScrollUnit="Pixel"
+                          VirtualizingPanel.VirtualizationMode="Recycling">
+                    <DataGrid.Columns>
+                        <DataGridTemplateColumn Header="ICON"
+                                                Width="94"
+                                                CanUserSort="False">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid Width="44" Height="44">
+                                        <Image Source="{Binding FallbackIconPath}"
+                                               Width="36"
+                                               Height="36"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               Stretch="Uniform"
+                                               RenderOptions.BitmapScalingMode="HighQuality">
+                                            <Image.Style>
+                                                <Style TargetType="Image">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IconPath}" Value="{x:Null}">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Image.Style>
+                                        </Image>
+                                        <Image Source="{Binding IconPath}"
+                                               Stretch="UniformToFill"
+                                               RenderOptions.BitmapScalingMode="HighQuality">
+                                            <Image.Style>
+                                                <Style TargetType="Image">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IconPath}" Value="{x:Null}">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Image.Style>
+                                        </Image>
+                                    </Grid>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTemplateColumn Header="GAME"
+                                                Width="200"
+                                                MinWidth="160"
+                                                SortMemberPath="Name">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <Button Style="{StaticResource GameTitleButton}"
+                                                Click="OnGameTitleClick">
+                                            <TextBlock Text="{Binding Name}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       FontFamily="Rajdhani"
+                                                       FontSize="18"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                        </Button>
+                                        <StackPanel Margin="0,3,0,0"
+                                                    Orientation="Horizontal">
+                                                <Viewbox Width="15"
+                                                         Height="15"
+                                                         Margin="0,0,6,0"
+                                                         VerticalAlignment="Center">
+                                                    <Path Data="M10,14.66 V17 A1,1 0 0 1 9,18 A2,2 0 0 0 7,20 V22 M14,14.66 V17 A1,1 0 0 0 15,18 A2,2 0 0 1 17,20 V22 M17.916,10 H19.5 A2.5,2.5 0 0 0 22,7.5 V5 A1,1 0 0 0 21,4 H18 M4,22 H20 M6,9 A6,6 0 0 0 18,9 V3 A1,1 0 0 0 17,2 H7 A1,1 0 0 0 6,3 Z M6.084,10 H4.5 A2.5,2.5 0 0 1 2,7.5 V5 A1,1 0 0 1 3,4 H6"
+                                                          StrokeThickness="2"
+                                                          StrokeStartLineCap="Round"
+                                                          StrokeEndLineCap="Round"
+                                                          StrokeLineJoin="Round">
+                                                        <Path.Style>
+                                                            <Style TargetType="Path">
+                                                                <Setter Property="Stroke" Value="#777A82" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsTrophyComplete}" Value="True">
+                                                                        <Setter Property="Stroke" Value="{StaticResource CompletedTrophyBrush}" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Path.Style>
+                                                    </Path>
+                                                </Viewbox>
+                                                <TextBlock Text="{Binding TrophyCountText, Mode=OneWay}"
+                                                           VerticalAlignment="Center"
+                                                           FontFamily="Rajdhani"
+                                                           FontSize="16"
+                                                           FontWeight="SemiBold">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="#777A82" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsTrophyComplete}" Value="True">
+                                                                    <Setter Property="Foreground" Value="{StaticResource CompletedTrophyBrush}" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTemplateColumn Header="TOTAL PLAYTIME"
+                                                Width="140"
+                                                MinWidth="140"
+                                                SortMemberPath="PlayedSeconds">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding PlayedTimeText, Mode=OneWay}"
+                                               VerticalAlignment="Center"
+                                               FontFamily="Rajdhani"
+                                               FontSize="20"
+                                               FontWeight="SemiBold"
+                                               Foreground="#F0F1F7" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTemplateColumn Header="PLAY TIME BY PLATFORM"
+                                                 Width="*"
+                                                 MinWidth="520"
+                                                 CanUserSort="False">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <local:ExophasePlatformTimeline Segments="{Binding PlatformSegments}"
+                                                                         TrophyProgressRatio="{Binding TrophyProgressRatio}"
+                                                                         VerticalAlignment="Center"
+                                                                         Visibility="{Binding HasPlatformTime, Converter={StaticResource BooleanToVisibility}}" />
+                                        <TextBlock Text="{Binding PlatformStatusText}"
+                                                   HorizontalAlignment="Left"
+                                                   VerticalAlignment="Center"
+                                                   FontFamily="Rajdhani"
+                                                   FontSize="16"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="#777A82">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding HasPlatformTime}" Value="True">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Grid>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+                    <Border x:Name="HeaderGutterFill"
+                            Panel.ZIndex="10"
+                            Width="0"
+                            Height="44"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Top"
+                            Background="#111111"
+                            BorderBrush="#242424"
+                            BorderThickness="0,0,0,1"
+                            IsHitTestVisible="False"
+                            Visibility="Collapsed" />
+                </Grid>
+            </Border>
+
+                <Grid x:Name="TableLegendBar"
+                      Height="62"
+                      Margin="24,0,24,18"
+                      TextElement.FontFamily="Rajdhani"
+                      TextElement.FontSize="17"
+                      TextElement.FontWeight="SemiBold">
+                    <StackPanel HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                Orientation="Horizontal">
+                        <StackPanel Margin="0,0,34,0"
+                                    VerticalAlignment="Center"
+                                    Orientation="Horizontal">
+                            <Grid Width="58"
+                                  Height="24"
+                                  Margin="0,0,10,0">
+                                <Rectangle Margin="5,8,5,8"
+                                           Fill="#F0F1F7" />
+                                <Path Data="M1,21 V3 H34 M1,21 H34"
+                                      Stroke="#F0F1F7"
+                                      StrokeThickness="2"
+                                      StrokeDashArray="3,2"
+                                      StrokeDashCap="Flat"
+                                      StrokeStartLineCap="Flat"
+                                      StrokeEndLineCap="Flat"
+                                      StrokeLineJoin="Miter" />
+                            </Grid>
+                            <TextBlock VerticalAlignment="Center"
+                                       Text="Trophy progress"
+                                       Foreground="#A5A7AE" />
+                        </StackPanel>
+
+                        <StackPanel VerticalAlignment="Center"
+                                    Orientation="Horizontal">
+                            <Grid Width="58"
+                                  Height="24"
+                                  Margin="0,0,10,0">
+                                <Rectangle Margin="5,8,5,8"
+                                           Fill="#F0F1F7" />
+                                <Path Data="M1,21 V3 H57 V21 Z"
+                                      Stroke="#FFD34E"
+                                      StrokeThickness="2"
+                                      StrokeDashArray="3,2"
+                                      StrokeDashCap="Flat"
+                                      StrokeStartLineCap="Flat"
+                                      StrokeEndLineCap="Flat"
+                                      StrokeLineJoin="Miter" />
+                            </Grid>
+                            <TextBlock VerticalAlignment="Center"
+                                       Text="All trophies achieved"
+                                       Foreground="#FFD34E" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Orientation="Horizontal">
+                        <TextBlock x:Name="FetchedGamesCountText"
+                                   Margin="0,0,28,0"
+                                   VerticalAlignment="Center"
+                                   Text="0 Games with Exophase data"
+                                   Foreground="#777A82" />
+                        <TextBlock x:Name="NoExophaseDataCountText"
+                                   Margin="0,0,28,0"
+                                   VerticalAlignment="Center"
+                                   Text="0 With no Exophase data"
+                                   Foreground="#777A82" />
+                        <TextBlock x:Name="DisabledGamesCountText"
+                                   VerticalAlignment="Center"
+                                   Text="0 Games with Exophase manually disabled"
+                                   Foreground="#777A82" />
+                    </StackPanel>
+                </Grid>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="660" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border x:Name="GlobalStatisticsCard"
+                            Grid.Column="0"
+                            Margin="0,0,9,0"
+                            Background="#0B0B0B"
+                            BorderBrush="#242424"
+                            BorderThickness="1"
+                            CornerRadius="0"
+                            ClipToBounds="True">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="48" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <Border Grid.Row="0"
+                                Background="#111111"
+                                BorderBrush="#242424"
+                                BorderThickness="0,0,0,1">
+                            <TextBlock Margin="18,0"
+                                       VerticalAlignment="Center"
+                                       Text="PLAYTIME STATISTICS"
+                                       FontFamily="Rajdhani"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"
+                                       Foreground="#777A82" />
+                        </Border>
+
+                        <Grid x:Name="GlobalStatisticsContent"
+                              Grid.Row="1"
+                              Margin="20,8,20,20">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="460" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="420" />
+                                    <ColumnDefinition Width="200" />
+                                </Grid.ColumnDefinitions>
+
+                                <local:ExophasePlatformWheel x:Name="GlobalPlatformWheel"
+                                                            Grid.Column="0"
+                                                            Width="400"
+                                                            Height="400"
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center" />
+
+                                <StackPanel Grid.Column="1"
+                                            Margin="10,0,0,0"
+                                            VerticalAlignment="Center">
+                                    <StackPanel Margin="0,0,0,28">
+                                        <TextBlock Text="TOTAL PLAYTIME"
+                                                   FontFamily="Rajdhani"
+                                                   FontSize="15"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="#777A82" />
+                                        <TextBlock x:Name="GlobalTotalPlaytimeValue"
+                                                   Margin="0,2,0,0"
+                                                   Text="0m"
+                                                   FontFamily="Rajdhani"
+                                                   FontSize="30"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="#F0F1F7" />
+                                    </StackPanel>
+
+                                    <StackPanel Margin="0,0,0,28">
+                                        <TextBlock Text="TOTAL TROPHIES"
+                                                   FontFamily="Rajdhani"
+                                                   FontSize="15"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="#777A82" />
+                                        <TextBlock x:Name="GlobalTotalTrophiesValue"
+                                                   Margin="0,2,0,0"
+                                                   Text="0/0"
+                                                   FontFamily="Rajdhani"
+                                                   FontSize="30"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="#F0F1F7" />
+                                    </StackPanel>
+
+                                    <StackPanel>
+                                        <TextBlock Text="PLATFORMS USED"
+                                                   FontFamily="Rajdhani"
+                                                   FontSize="15"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="#777A82" />
+                                        <TextBlock x:Name="GlobalPlatformsUsedValue"
+                                                   Margin="0,2,0,0"
+                                                   Text="0"
+                                                   FontFamily="Rajdhani"
+                                                   FontSize="30"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="#F0F1F7" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid Grid.Row="1"
+                                  VerticalAlignment="Stretch">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="TOTAL PLAYTIME BY PLATFORM"
+                                           Margin="0,0,0,14"
+                                           FontFamily="Rajdhani"
+                                           FontSize="15"
+                                           FontWeight="SemiBold"
+                                           Foreground="#777A82" />
+                                    <ItemsControl x:Name="PlatformStatisticsItems"
+                                                  Grid.Row="1"
+                                                  Width="620"
+                                                  HorizontalAlignment="Left"
+                                                  ItemsSource="{Binding PlatformStatistics}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <UniformGrid Columns="2" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Height="36"
+                                                            Margin="0,0,0,14"
+                                                            HorizontalAlignment="Left"
+                                                            MouseEnter="OnPlatformLegendMouseEnter"
+                                                            MouseLeave="OnPlatformLegendMouseLeave"
+                                                            Opacity="{Binding LegendOpacity}"
+                                                            Orientation="Horizontal">
+                                                <Border
+                                                        Height="30"
+                                                        Padding="9,0"
+                                                        VerticalAlignment="Center"
+                                                        Background="{Binding LegendTagBrush}"
+                                                        CornerRadius="6">
+                                                    <StackPanel Orientation="Horizontal"
+                                                                VerticalAlignment="Center">
+                                                        <Grid Width="16"
+                                                              Height="16"
+                                                              Margin="0,0,6,0">
+                                                            <Viewbox Stretch="Uniform">
+                                                                <Path Data="{Binding IconGeometry}"
+                                                                      Fill="{Binding LegendForegroundBrush}" />
+                                                            </Viewbox>
+                                                            <Rectangle Fill="{Binding LegendForegroundBrush}">
+                                                                <Rectangle.OpacityMask>
+                                                                    <ImageBrush ImageSource="/Osiris.Exophase;component/Assets/osiris-logo.png"
+                                                                                Stretch="Uniform" />
+                                                                </Rectangle.OpacityMask>
+                                                                <Rectangle.Style>
+                                                                    <Style TargetType="Rectangle">
+                                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding UseOsirisLogo}" Value="True">
+                                                                                <Setter Property="Visibility" Value="Visible" />
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Rectangle.Style>
+                                                            </Rectangle>
+                                                        </Grid>
+                                                        <TextBlock Text="{Binding Platform}"
+                                                                   VerticalAlignment="Center"
+                                                                   FontFamily="Rajdhani"
+                                                                   FontSize="16"
+                                                                   FontWeight="SemiBold"
+                                                                    Foreground="{Binding LegendForegroundBrush}" />
+                                                    </StackPanel>
+                                                </Border>
+
+                                                <TextBlock Margin="10,0,0,0"
+                                                           VerticalAlignment="Center"
+                                                           Text="{Binding PlaytimeText}"
+                                                           FontFamily="Rajdhani"
+                                                           FontSize="16"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="#F0F1F7" />
+                                                <TextBlock Margin="7,0,0,0"
+                                                           VerticalAlignment="Center"
+                                                           Text="{Binding PercentageText}"
+                                                           FontFamily="Rajdhani"
+                                                           FontSize="15"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="#777A82" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                            </Grid>
+                        </Grid>
+
+                        <TextBlock x:Name="GlobalStatisticsEmptyState"
+                                   Grid.Row="1"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Text="No platform playtime is available yet."
+                                   FontFamily="Rajdhani"
+                                   FontSize="17"
+                                   FontWeight="SemiBold"
+                                   Foreground="#777A82"
+                                   Visibility="Collapsed" />
+                    </Grid>
+                    </Border>
+                </Grid>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

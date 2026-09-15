@@ -6,7 +6,7 @@ profile with matching games in Osiris.
 
 ## Current prototype
 
-Version 0.2.3 provides:
+Version 0.2.4 provides:
 
 - Account, General, and Danger Zone settings pages.
 - A first-party Osiris embedded-browser sign-in flow for Exophase.

@@ -209,13 +209,13 @@
                                    FontSize="15"
                                    FontWeight="SemiBold"
                                    TextWrapping="Wrap" />
-                        <Button x:Name="SynchronizeButton"
-                                Content="Synchronise now"
+                        <Button x:Name="UpdateDatabaseButton"
+                                Content="Update Database"
                                 Height="38"
                                 Padding="18,0"
                                 HorizontalAlignment="Left"
                                 IsEnabled="{Binding CanSynchronize}"
-                                Click="OnSynchronizeClick" />
+                                Click="OnUpdateDatabaseClick" />
                     </StackPanel>
                 </Grid>
             </ScrollViewer>

@@ -52,7 +52,7 @@ namespace Osiris.Extensions.Exophase
             (DataContext as ExophaseSettings)?.SignOut();
         }
 
-        private async void OnSynchronizeClick(object sender, RoutedEventArgs e)
+        private async void OnUpdateDatabaseClick(object sender, RoutedEventArgs e)
         {
             e.Handled = true;
             var settings = DataContext as ExophaseSettings;
