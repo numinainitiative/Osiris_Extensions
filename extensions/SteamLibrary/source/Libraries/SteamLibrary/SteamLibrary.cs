@@ -73,11 +73,6 @@ namespace SteamLibrary
             return SettingsViewModel;
         }
 
-        public override LibraryMetadataProvider GetMetadataDownloader()
-        {
-            return new SteamMetadataProvider(this);
-        }
-
         public override IEnumerable<InstallController> GetInstallActions(GetInstallActionsArgs args)
         {
             if (args.Game.PluginId != Id)
@@ -111,7 +106,29 @@ namespace SteamLibrary
         public override IEnumerable<GameMetadata> GetGames(LibraryGetGamesArgs args)
         {
             var aggregator = new SteamServiceAggregator(new PlayerService(), new SteamStoreService(PlayniteApi), new ClientCommService(), new FamilyGroupsService(), ServicesClient, this);
-            return aggregator.GetGamesAsync(SettingsViewModel.Settings).GetAwaiter().GetResult();
+            return aggregator.GetGamesAsync(SettingsViewModel.Settings)
+                .GetAwaiter()
+                .GetResult()
+                .Select(CreateLibrarySyncRecord);
+        }
+
+        private static GameMetadata CreateLibrarySyncRecord(GameMetadata source)
+        {
+            // A library integration supplies identity and runtime state only.
+            // Descriptive metadata and artwork belong exclusively to the
+            // metadata extensions selected in Osiris settings.
+            return new GameMetadata
+            {
+                GameId = source.GameId,
+                Name = source.Name,
+                IsInstalled = source.IsInstalled,
+                InstallDirectory = source.InstallDirectory,
+                GameActions = source.GameActions,
+                Roms = source.Roms,
+                Playtime = source.Playtime,
+                PlayCount = source.PlayCount,
+                LastActivity = source.LastActivity
+            };
         }
 
         public override IEnumerable<TopPanelItem> GetTopPanelItems()

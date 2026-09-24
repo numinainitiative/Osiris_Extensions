@@ -9,7 +9,6 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Playnite.SDK;
@@ -32,16 +31,13 @@ namespace Osiris.Extensions.Exophase
         private readonly string fallbackIconPath;
         private readonly ObservableCollection<ExophaseGameRow> games =
             new ObservableCollection<ExophaseGameRow>();
-        private readonly ObservableCollection<ExophasePlatformSummaryItem> platformStatistics =
-            new ObservableCollection<ExophasePlatformSummaryItem>();
         private readonly FrameworkElement fixedHeader;
         private TextBox searchBox;
         private string searchText = string.Empty;
+        private bool showOnlyExophaseData;
         private bool subscriptionsAttached;
 
         public ICollectionView GamesView { get; }
-
-        public IEnumerable<ExophasePlatformSummaryItem> PlatformStatistics => platformStatistics;
 
         public ExophaseGlobalPageControl()
             : this(null, null, null, null, null, null)
@@ -69,9 +65,9 @@ namespace Osiris.Extensions.Exophase
             GamesView.Filter = FilterGame;
             SortByCombo.SelectedIndex = 0;
             SortByCombo.SelectionChanged += OnSortByChanged;
-            GlobalPlatformWheel.HoveredPlatformChanged += OnWheelHoveredPlatformChanged;
+            ShowOnlyExophaseDataToggle.Checked += OnShowOnlyExophaseDataChanged;
+            ShowOnlyExophaseDataToggle.Unchecked += OnShowOnlyExophaseDataChanged;
             GamesGrid.LayoutUpdated += OnGamesGridLayoutUpdated;
-            PageScrollViewer.SizeChanged += OnPageScrollViewerSizeChanged;
             RefreshDatabaseUpdateControls();
             ApplySort("Title");
             DataContext = this;
@@ -92,7 +88,6 @@ namespace Osiris.Extensions.Exophase
         {
             fixedHeader.Visibility = Visibility.Visible;
             AttachSubscriptions();
-            UpdateGamesTableHeight();
             ReloadGames();
 
             var mainWindow = Application.Current?.MainWindow;
@@ -241,7 +236,6 @@ namespace Osiris.Extensions.Exophase
             }
 
             UpdateGameDataSummary(rows);
-            UpdatePlatformStatistics(rows);
             GamesView.Refresh();
             RefreshDatabaseUpdateControls();
         }
@@ -267,95 +261,6 @@ namespace Osiris.Extensions.Exophase
                 values.Count(row => row.DataState == ExophaseGameDataState.Fetched),
                 values.Count(row => row.DataState == ExophaseGameDataState.NoData),
                 values.Count(row => row.DataState == ExophaseGameDataState.Disabled));
-        }
-
-        private void UpdatePlatformStatistics(IEnumerable<ExophaseGameRow> rows)
-        {
-            SetHighlightedPlatform(null);
-            var rowList = (rows ?? Enumerable.Empty<ExophaseGameRow>()).ToList();
-            var statistics = AggregatePlatformStatistics(
-                rowList.SelectMany(row => row.PlatformSegments));
-
-            platformStatistics.Clear();
-            foreach (var statistic in statistics)
-            {
-                platformStatistics.Add(statistic);
-            }
-
-            GlobalPlatformWheel.Segments = statistics;
-            var totalPlaytime = statistics.Aggregate(
-                0UL,
-                (sum, item) => SaturatingAdd(sum, item.PlaytimeSeconds));
-            GlobalTotalPlaytimeValue.Text =
-                ExophaseActivityControl.FormatCompactPlaytime(totalPlaytime);
-            GlobalTotalTrophiesValue.Text = FormatTotalTrophies(rowList);
-            GlobalPlatformsUsedValue.Text = statistics.Count.ToString(CultureInfo.CurrentCulture);
-            GlobalStatisticsContent.Visibility = statistics.Count > 0
-                ? Visibility.Visible
-                : Visibility.Collapsed;
-            GlobalStatisticsEmptyState.Visibility = statistics.Count > 0
-                ? Visibility.Collapsed
-                : Visibility.Visible;
-        }
-
-        internal static IReadOnlyList<ExophasePlatformSummaryItem> AggregatePlatformStatistics(
-            IEnumerable<ExophaseTimelineSegment> segments)
-        {
-            var grouped = (segments ?? Enumerable.Empty<ExophaseTimelineSegment>())
-                .Where(segment => segment != null && segment.PlaytimeSeconds > 0)
-                .GroupBy(
-                    segment => string.IsNullOrWhiteSpace(segment.Platform)
-                        ? "Unknown"
-                        : segment.Platform.Trim(),
-                    StringComparer.OrdinalIgnoreCase)
-                .Select(group =>
-                {
-                    var visual = ExophasePlatformVisualCatalog.Resolve(group.Key);
-                    return new
-                    {
-                        Visual = visual,
-                        PlaytimeSeconds = group.Aggregate(
-                            0UL,
-                            (sum, segment) => SaturatingAdd(sum, segment.PlaytimeSeconds))
-                    };
-                })
-                .OrderByDescending(item => item.PlaytimeSeconds)
-                .ThenBy(item => item.Visual.DisplayName, StringComparer.OrdinalIgnoreCase)
-                .ToList();
-            var total = grouped.Aggregate(
-                0UL,
-                (sum, item) => SaturatingAdd(sum, item.PlaytimeSeconds));
-
-            return grouped.Select(item => new ExophasePlatformSummaryItem
-            {
-                Platform = item.Visual.DisplayName,
-                PlaytimeSeconds = item.PlaytimeSeconds,
-                PlaytimeText = ExophaseActivityControl.FormatCompactPlaytime(item.PlaytimeSeconds),
-                Percentage = total == 0 ? 0d : item.PlaytimeSeconds / (double)total,
-                PercentageText = ExophasePlatformTimeline.FormatPercentage(
-                    total == 0 ? 0d : item.PlaytimeSeconds / (double)total),
-                Brush = item.Visual.Brush,
-                TagBrush = item.Visual.UseOsirisLogo
-                    ? item.Visual.Brush
-                    : ExophasePlatformTimeline.CreateTagBrush(item.Visual.Brush),
-                IconGeometry = item.Visual.IconGeometry,
-                UseOsirisLogo = item.Visual.UseOsirisLogo
-            }).ToList();
-        }
-
-        private static ulong SaturatingAdd(ulong left, ulong right)
-        {
-            return ulong.MaxValue - left < right ? ulong.MaxValue : left + right;
-        }
-
-        internal static string FormatTotalTrophies(IEnumerable<ExophaseGameRow> rows)
-        {
-            var earned = (rows ?? Enumerable.Empty<ExophaseGameRow>())
-                .Aggregate(0L, (sum, row) => sum + Math.Max(0, row?.EarnedTrophies ?? 0));
-            var total = (rows ?? Enumerable.Empty<ExophaseGameRow>())
-                .Aggregate(0L, (sum, row) => sum + Math.Max(0, row?.TotalTrophies ?? 0));
-            return earned.ToString(CultureInfo.CurrentCulture) + "/" +
-                   total.ToString(CultureInfo.CurrentCulture);
         }
 
         private ExophaseGameRow CreateRow(Game game)
@@ -583,50 +488,22 @@ namespace Osiris.Extensions.Exophase
         {
             var row = item as ExophaseGameRow;
             return row != null &&
+                   (!showOnlyExophaseData ||
+                    row.DataState == ExophaseGameDataState.Fetched) &&
                    (string.IsNullOrWhiteSpace(searchText) ||
                     row.Name.IndexOf(searchText, StringComparison.CurrentCultureIgnoreCase) >= 0);
+        }
+
+        private void OnShowOnlyExophaseDataChanged(object sender, RoutedEventArgs args)
+        {
+            showOnlyExophaseData = ShowOnlyExophaseDataToggle.IsChecked == true;
+            GamesView?.Refresh();
         }
 
         private void OnSortByChanged(object sender, SelectionChangedEventArgs args)
         {
             var selected = SortByCombo.SelectedItem as ComboBoxItem;
             ApplySort(selected?.Tag as string ?? "Title");
-        }
-
-        private void OnWheelHoveredPlatformChanged(
-            object sender,
-            ExophasePlatformHoverEventArgs args)
-        {
-            SetHighlightedPlatform(args?.Platform);
-        }
-
-        private void OnPlatformLegendMouseEnter(object sender, MouseEventArgs args)
-        {
-            var platform = (sender as FrameworkElement)?.DataContext as
-                ExophasePlatformSummaryItem;
-            SetHighlightedPlatform(platform?.Platform);
-        }
-
-        private void OnPlatformLegendMouseLeave(object sender, MouseEventArgs args)
-        {
-            SetHighlightedPlatform(null);
-        }
-
-        internal void SetHighlightedPlatform(string platform)
-        {
-            var highlightedPlatform = string.IsNullOrWhiteSpace(platform)
-                ? null
-                : platform.Trim();
-            GlobalPlatformWheel.HighlightedPlatform = highlightedPlatform;
-            foreach (var statistic in platformStatistics)
-            {
-                statistic.SetMuted(
-                    highlightedPlatform != null &&
-                    !string.Equals(
-                        statistic.Platform,
-                        highlightedPlatform,
-                        StringComparison.OrdinalIgnoreCase));
-            }
         }
 
         private async void OnUpdateDatabaseClick(object sender, RoutedEventArgs args)
@@ -761,35 +638,6 @@ namespace Osiris.Extensions.Exophase
             HeaderGutterFill.Visibility = gutterWidth > 0
                 ? Visibility.Visible
                 : Visibility.Collapsed;
-        }
-
-        private void OnPageScrollViewerSizeChanged(object sender, SizeChangedEventArgs args)
-        {
-            UpdateGamesTableHeight();
-        }
-
-        private void UpdateGamesTableHeight()
-        {
-            if (GamesTableContainer == null || PageScrollViewer == null)
-            {
-                return;
-            }
-
-            var toolbarHeight = ScrollToolbar?.ActualHeight ?? 0d;
-            GamesTableContainer.Height = CalculateGamesTableHeight(
-                Math.Max(0d, PageScrollViewer.ActualHeight - toolbarHeight));
-        }
-
-        internal static double CalculateGamesTableHeight(double viewportHeight)
-        {
-            if (double.IsNaN(viewportHeight) ||
-                double.IsInfinity(viewportHeight) ||
-                viewportHeight <= 0)
-            {
-                return 640d;
-            }
-
-            return Math.Max(520d, Math.Round(viewportHeight * 0.8d));
         }
 
         private void AttachSearchBox()

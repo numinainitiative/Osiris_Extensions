@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -163,7 +164,8 @@ namespace Osiris.Extensions.HowLongToBeat
         {
             if (args.PropertyName == nameof(HowLongToBeatSettings.CanUpdateDatabase) ||
                 args.PropertyName == nameof(HowLongToBeatSettings.IsDatabaseUpdateRunning) ||
-                args.PropertyName == nameof(HowLongToBeatSettings.DatabaseUpdateStatus))
+                args.PropertyName == nameof(HowLongToBeatSettings.DatabaseUpdateStatus) ||
+                args.PropertyName == nameof(HowLongToBeatSettings.LastDatabaseUpdateUtc))
             {
                 if (Dispatcher.CheckAccess())
                 {
@@ -216,6 +218,7 @@ namespace Osiris.Extensions.HowLongToBeat
             }
 
             GamesView.Refresh();
+            RefreshUpdateDatabaseButton();
         }
 
         private HowLongToBeatGameRow CreateRow(Game game, string profile)
@@ -410,6 +413,44 @@ namespace Osiris.Extensions.HowLongToBeat
 
             UpdateDatabaseButton.IsEnabled = settings?.CanUpdateDatabase == true;
             UpdateDatabaseButton.ToolTip = settings?.DatabaseUpdateStatus;
+
+            if (LastDatabaseUpdateText == null)
+            {
+                return;
+            }
+
+            var updatedLocal = settings != null &&
+                               settings.LastDatabaseUpdateUtc != DateTime.MinValue
+                ? settings.LastDatabaseUpdateUtc.ToLocalTime()
+                : DateTime.MinValue;
+            LastDatabaseUpdateText.Text = FormatLastUpdated(updatedLocal, DateTime.Now);
+            LastDatabaseUpdateText.ToolTip = updatedLocal == DateTime.MinValue
+                ? null
+                : updatedLocal.ToString("F", CultureInfo.CurrentCulture);
+        }
+
+        internal static string FormatLastUpdated(DateTime updatedLocal, DateTime localNow)
+        {
+            if (updatedLocal == DateTime.MinValue)
+            {
+                return "Never updated";
+            }
+
+            if (updatedLocal.Date == localNow.Date)
+            {
+                return "Last updated today at " +
+                       updatedLocal.ToString("HH:mm", CultureInfo.CurrentCulture);
+            }
+
+            if (updatedLocal.Date == localNow.Date.AddDays(-1))
+            {
+                return "Last updated yesterday at " +
+                       updatedLocal.ToString("HH:mm", CultureInfo.CurrentCulture);
+            }
+
+            return "Last updated " + updatedLocal.ToString(
+                "dd/MM/yyyy 'at' HH:mm",
+                CultureInfo.CurrentCulture);
         }
 
         private void OnGameTitleClick(object sender, RoutedEventArgs args)

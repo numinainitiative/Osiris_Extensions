@@ -36,6 +36,7 @@ namespace Osiris.Extensions.HowLongToBeat
         private bool showMainStory = true;
         private bool showMainExtras = true;
         private bool showCompletionist = true;
+        private DateTime lastDatabaseUpdateUtc;
         private bool isDatabaseUpdateRunning;
         private string databaseUpdateStatus =
             "Only games with an existing HowLongToBeat match will be checked.";
@@ -66,6 +67,12 @@ namespace Osiris.Extensions.HowLongToBeat
         {
             get => showCompletionist;
             set => SetValue(ref showCompletionist, value);
+        }
+
+        public DateTime LastDatabaseUpdateUtc
+        {
+            get => lastDatabaseUpdateUtc;
+            set => SetValue(ref lastDatabaseUpdateUtc, value);
         }
 
         [DontSerialize]
@@ -133,6 +140,8 @@ namespace Osiris.Extensions.HowLongToBeat
                 var summary = await plugin.UpdateStoredDatabaseAsync(
                     progress,
                     cancellationToken);
+                LastDatabaseUpdateUtc = DateTime.UtcNow;
+                plugin.PersistSettings();
                 DatabaseUpdateStatus = summary.CheckedGames == 0
                     ? $"No fetched matches were found. {summary.LibraryGames} library games were left untouched."
                     : $"Checked {summary.CheckedGames} fetched games: " +
@@ -198,7 +207,8 @@ namespace Osiris.Extensions.HowLongToBeat
                 TimeProfile = TimeProfile,
                 ShowMainStory = ShowMainStory,
                 ShowMainExtras = ShowMainExtras,
-                ShowCompletionist = ShowCompletionist
+                ShowCompletionist = ShowCompletionist,
+                LastDatabaseUpdateUtc = LastDatabaseUpdateUtc
             };
         }
 
@@ -208,6 +218,7 @@ namespace Osiris.Extensions.HowLongToBeat
             ShowMainStory = source?.ShowMainStory ?? true;
             ShowMainExtras = source?.ShowMainExtras ?? true;
             ShowCompletionist = source?.ShowCompletionist ?? true;
+            LastDatabaseUpdateUtc = source?.LastDatabaseUpdateUtc ?? DateTime.MinValue;
             Normalize();
         }
 

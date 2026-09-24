@@ -17,6 +17,9 @@ Version 0.2.4 provides:
   directory, making the last successful import available offline.
 - Per-platform activity aggregation and deterministic normalized-title matching
   against the Osiris library.
+- A global Exophase page whose game table fills the available viewport like
+  HowLongToBeat. The page itself does not scroll; longer libraries scroll only
+  inside the table.
 - An optional game-details card with a compact one-column platform
   list using the HowLongToBeat card's row geometry. Each row shows a large
   outlined platform icon, platform name, and compact hours/minutes played.
@@ -41,6 +44,11 @@ Version 0.2.4 provides:
 - A narrow optional runtime contract that lets HowLongToBeat compare its
   completion estimates with the same guarded Total Time Played value displayed
   by Osiris, without coupling either extension at build time.
+- A read-only aggregate runtime contract for the optional Stats extension. It
+  exposes guarded per-game coverage, resolved platform playtime, and 100%
+  trophy completion from the same resolver used by Exophase's own page. It
+  performs no synchronization or network access and keeps Stats decoupled at
+  build time.
 - Manual and startup synchronization with progress in Osiris's bottom panel.
 - Session verification and local webview-cookie sign-out.
 

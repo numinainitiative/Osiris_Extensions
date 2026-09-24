@@ -28,6 +28,11 @@ unfetched game. Successful automatic and manual matches are also embedded in
 the extension's per-game records, keyed by the permanent Osiris game ID. It has
 no account integration, telemetry, or third-party runtime dependencies.
 
+The extension also exposes a read-only in-process bridge for the Stats global
+page. It returns the currently selected completion-time profile and each
+game's already saved manual, automatic, or cached estimates. Reading that
+bridge never searches HowLongToBeat or downloads new data.
+
 ## Identity
 
 - ID: `HowLongToBeat_fba3e63d-d1a1-4b9d-91c6-091a1220377d`

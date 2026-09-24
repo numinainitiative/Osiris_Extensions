@@ -170,8 +170,6 @@ namespace SteamLibrary.Services
                 game.Source = new MetadataNameProperty(SourceNames.Steam);
             }
 
-            UpdateExistingGames(output);
-
             return output;
         }
 

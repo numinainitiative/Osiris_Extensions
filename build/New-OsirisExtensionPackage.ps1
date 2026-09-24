@@ -9,6 +9,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$LicensePath,
     [hashtable]$AdditionalLicenseFiles = @{},
+    [string[]]$AdditionalExcludedFilePatterns = @(),
     [ValidateSet("Debug", "Release")]
     [string]$Configuration = "Release",
     [switch]$Force
@@ -88,7 +89,11 @@ New-Item -ItemType Directory -Path $stagingRoot -Force | Out-Null
 
 $excludedNames = @("Playnite.SDK.dll", "AngleSharp.dll")
 foreach ($file in Get-ChildItem -LiteralPath $resolvedBuildOutput -Recurse -File) {
+    $matchesAdditionalExclusion = @($AdditionalExcludedFilePatterns | Where-Object {
+        $file.Name -like $_
+    }).Count -gt 0
     if ($file.Name -in $excludedNames -or
+        $matchesAdditionalExclusion -or
         $file.Extension -in @('.pdb', '.xml', '.log', '.user', '.suo')) {
         continue
     }

@@ -68,6 +68,10 @@ internal static class Program
             extensionRoot,
             "source",
             "HowLongToBeatGlobalPageControl.cs"));
+        var pluginCode = File.ReadAllText(Path.Combine(
+            extensionRoot,
+            "source",
+            "HowLongToBeatPlugin.cs"));
         var settingsCode = File.ReadAllText(Path.Combine(
             extensionRoot,
             "source",
@@ -76,6 +80,14 @@ internal static class Program
             extensionRoot,
             "source",
             "OsirisFooterUpdateProgress.cs"));
+        Expect(pluginCode.Contains("public static HowLongToBeatPlugin Current") &&
+               pluginCode.Contains("Current = this;") &&
+               pluginCode.Contains("public string GetStatsLibraryForOsiris()") &&
+               pluginCode.Contains("SelectStoredResult(game, storedSettings)") &&
+               pluginCode.Contains("GetMainStorySeconds(profile)") &&
+               pluginCode.Contains("GetMainExtraSeconds(profile)") &&
+               pluginCode.Contains("GetCompletionistSeconds(profile)"),
+            "The Stats bridge should export profile-aware stored or cached completion times without fetching data.");
         Expect(cardView.Contains("<Setter Property=\"CornerRadius\" Value=\"0\" />") &&
                cardView.Contains("<Setter Property=\"Height\" Value=\"10\" />") &&
                cardView.Contains("<ColumnDefinition Width=\"170\" />") &&
@@ -225,6 +237,7 @@ internal static class Program
         var sortByCombo = globalView?.FindName("SortByCombo") as ComboBox;
         var showOnlyPlayedToggle = globalView?.FindName("ShowOnlyPlayedToggle") as CheckBox;
         var globalUpdateDatabaseButton = globalView?.FindName("UpdateDatabaseButton") as Button;
+        var globalLastDatabaseUpdateText = globalView?.FindName("LastDatabaseUpdateText") as TextBlock;
         var headerGutterFill = globalView?.FindName("HeaderGutterFill") as Border;
         Expect(sortByCombo != null &&
                sortByCombo.Items.Count == 3 &&
@@ -236,6 +249,8 @@ internal static class Program
         Expect(globalUpdateDatabaseButton != null &&
                string.Equals(globalUpdateDatabaseButton.Content as string, "Update Database", StringComparison.Ordinal) &&
                !globalUpdateDatabaseButton.IsEnabled &&
+               globalLastDatabaseUpdateText != null &&
+               string.Equals(globalLastDatabaseUpdateText.Text, "Never updated", StringComparison.Ordinal) &&
                globalPageView.Contains("x:Key=\"OsirisActionButtonStyle\"") &&
                globalPageView.Contains("Style=\"{StaticResource OsirisActionButtonStyle}\"") &&
                globalPageView.Contains("<Setter Property=\"Background\" Value=\"#111111\" />") &&
@@ -244,8 +259,21 @@ internal static class Program
                globalPageView.Contains("TargetName=\"ActionBackground\" Property=\"Background\" Value=\"#171717\"") &&
                globalPageView.Contains("TargetName=\"ActionBackground\" Property=\"Background\" Value=\"#1A1A1A\"") &&
                globalPageCode.Contains("await settings.UpdateDatabaseAsync()") &&
-               globalPageCode.Contains("nameof(HowLongToBeatSettings.CanUpdateDatabase)"),
-            "The global toolbar should reuse the exact Osiris action-button treatment and the settings database-update operation.");
+               globalPageCode.Contains("nameof(HowLongToBeatSettings.CanUpdateDatabase)") &&
+               globalPageCode.Contains("nameof(HowLongToBeatSettings.LastDatabaseUpdateUtc)") &&
+               settingsCode.Contains("LastDatabaseUpdateUtc = DateTime.UtcNow") &&
+               settingsCode.Contains("plugin.PersistSettings()"),
+            "The global toolbar should reuse the exact Osiris action-button treatment, show the persisted update time, and run the settings database-update operation.");
+        var formatReferenceNow = new DateTime(2026, 9, 14, 18, 0, 0);
+        Expect(HowLongToBeatGlobalPageControl.FormatLastUpdated(DateTime.MinValue, formatReferenceNow) ==
+                   "Never updated" &&
+               HowLongToBeatGlobalPageControl.FormatLastUpdated(
+                   new DateTime(2026, 9, 14, 15, 43, 0),
+                   formatReferenceNow) == "Last updated today at 15:43" &&
+               HowLongToBeatGlobalPageControl.FormatLastUpdated(
+                   new DateTime(2026, 9, 13, 15, 43, 0),
+                   formatReferenceNow) == "Last updated yesterday at 15:43",
+            "The HLTB page should format its persisted database-update timestamp beside the action.");
         Expect(globalPageView.Contains("Margin=\"52,23,52,0\"") &&
                globalPageView.Contains("<RowDefinition Height=\"84\" />") &&
                globalPageView.Contains("Margin=\"28,0,28,28\"") &&

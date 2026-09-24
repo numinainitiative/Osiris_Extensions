@@ -100,12 +100,100 @@ namespace Osiris.Extensions.Exophase
                 return game.Playtime;
             }
 
-            var editableActivity = activityResolver.Resolve(game, false);
-            var resolvedActivity = activityResolver.Resolve(game, true);
-            if (!ExophaseActivityControl.HasDisplayableActivity(editableActivity) ||
-                !resolvedActivity.CanDisplayTotal)
+            return ResolveUnifiedPlaytime(game);
+        }
+
+        public ulong GetUnifiedPlaytimeForOsiris(string gameId)
+        {
+            return ResolveUnifiedPlaytime(FindGame(gameId));
+        }
+
+        public ulong GetStatsPlaytimeForOsiris(string gameId)
+        {
+            var game = FindGame(gameId);
+            ExophaseResolvedActivity editableActivity;
+            ExophaseResolvedActivity resolvedActivity;
+            return TryResolveUnifiedActivity(game, out editableActivity, out resolvedActivity)
+                ? resolvedActivity.TotalPlaytimeSeconds
+                : 0UL;
+        }
+
+        public int GetEarnedTrophiesForOsiris(string gameId)
+        {
+            var game = FindGame(gameId);
+            ExophaseResolvedActivity editableActivity;
+            ExophaseResolvedActivity resolvedActivity;
+            if (!TryResolveUnifiedActivity(game, out editableActivity, out resolvedActivity))
             {
-                return game.Playtime;
+                return 0;
+            }
+
+            var trophyPlatform = ExophaseGlobalPageControl.SelectTrophyPlatform(
+                editableActivity.Platforms);
+            return Math.Max(0, trophyPlatform?.EarnedAwards ?? 0);
+        }
+
+        public string GetStatsLibraryForOsiris()
+        {
+            var games = PlayniteApi.Database.Games
+                .Where(game => game != null)
+                .Select(game =>
+                {
+                    ExophaseResolvedActivity editableActivity;
+                    ExophaseResolvedActivity resolvedActivity;
+                    var found = TryResolveUnifiedActivity(
+                        game,
+                        out editableActivity,
+                        out resolvedActivity);
+                    var trophyPlatform = found
+                        ? ExophaseGlobalPageControl.SelectTrophyPlatform(
+                            editableActivity.Platforms)
+                        : null;
+                    return new
+                    {
+                        GameId = game.Id.ToString(),
+                        Found = found,
+                        Completed = trophyPlatform != null &&
+                                    trophyPlatform.TotalAwards > 0 &&
+                                    trophyPlatform.EarnedAwards >= trophyPlatform.TotalAwards,
+                        Platforms = found
+                            ? resolvedActivity.Platforms
+                                .Where(platform =>
+                                    platform != null &&
+                                    platform.PlaytimeSeconds > 0UL)
+                                .Select(platform => new
+                                {
+                                    platform.Platform,
+                                    platform.PlaytimeSeconds
+                                })
+                                .ToList()
+                            : null
+                    };
+                })
+                .ToList();
+            return JsonConvert.SerializeObject(new { Games = games });
+        }
+
+        private ulong ResolveUnifiedPlaytime(Playnite.SDK.Models.Game game)
+        {
+            ExophaseResolvedActivity editableActivity;
+            ExophaseResolvedActivity resolvedActivity;
+            return TryResolveUnifiedActivity(game, out editableActivity, out resolvedActivity) &&
+                   resolvedActivity.CanDisplayTotal
+                ? resolvedActivity.TotalPlaytimeSeconds
+                : game.Playtime;
+        }
+
+        private bool TryResolveUnifiedActivity(
+            Playnite.SDK.Models.Game game,
+            out ExophaseResolvedActivity editableActivity,
+            out ExophaseResolvedActivity resolvedActivity)
+        {
+            editableActivity = activityResolver.Resolve(game, false);
+            resolvedActivity = activityResolver.Resolve(game, true);
+            if (!ExophaseActivityControl.HasDisplayableActivity(editableActivity))
+            {
+                return false;
             }
 
             if (!editableActivity.UsesManualMatch &&
@@ -119,11 +207,11 @@ namespace Osiris.Extensions.Exophase
                         StringComparison.Ordinal));
                 if (matchingLibraryGames != 1)
                 {
-                    return game.Playtime;
+                    return false;
                 }
             }
 
-            return resolvedActivity.TotalPlaytimeSeconds;
+            return true;
         }
 
         public string GetGameSettingsForOsiris(string gameId)

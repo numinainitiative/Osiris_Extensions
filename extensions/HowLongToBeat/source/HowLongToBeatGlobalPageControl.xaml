@@ -354,12 +354,22 @@
                                Foreground="#9C9C9C" />
                 </StackPanel>
 
-                <Button x:Name="UpdateDatabaseButton"
-                        Content="Update Database"
-                        Style="{StaticResource OsirisActionButtonStyle}"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Top"
-                        Click="OnUpdateDatabaseClick" />
+                <StackPanel Height="38"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Top">
+                    <TextBlock x:Name="LastDatabaseUpdateText"
+                               Margin="0,0,18,0"
+                               VerticalAlignment="Center"
+                               Text="Never updated"
+                               Foreground="#777A82" />
+                    <Button x:Name="UpdateDatabaseButton"
+                            Content="Update Database"
+                            Style="{StaticResource OsirisActionButtonStyle}"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Top"
+                            Click="OnUpdateDatabaseClick" />
+                </StackPanel>
             </Grid>
 
             <Border Grid.Row="1"

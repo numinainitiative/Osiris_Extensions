@@ -1,7 +1,7 @@
 # Steam Library
 
 - Identity: `SteamLibrary_cb91dfc9-b977-43bf-8e70-55f46e410fab`
-- Osiris version: `1.0.1`
+- Osiris version: `1.0.2`
 - Upstream code baseline: Steam Library `2.40`
 - Status: public Osiris extension
 

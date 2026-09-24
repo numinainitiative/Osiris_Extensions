@@ -21,6 +21,8 @@ namespace Osiris.Extensions.HowLongToBeat
         private readonly HowLongToBeatSettings settings;
         private readonly HowLongToBeatGlobalPageSidebarItem globalPage;
 
+        public static HowLongToBeatPlugin Current { get; private set; }
+
         public override Guid Id { get; } = Guid.Parse("fba3e63d-d1a1-4b9d-91c6-091a1220377d");
 
         public HowLongToBeatPlugin(IPlayniteAPI api) : base(api)
@@ -46,6 +48,7 @@ namespace Osiris.Extensions.HowLongToBeat
                 SourceName = ExtensionSource,
                 ElementList = new List<string> { ControlName }
             });
+            Current = this;
         }
 
         public override Control GetGameViewControl(GetGameViewControlArgs args)
@@ -58,6 +61,11 @@ namespace Osiris.Extensions.HowLongToBeat
         public override IEnumerable<SidebarItem> GetSidebarItems()
         {
             yield return globalPage;
+        }
+
+        internal void PersistSettings()
+        {
+            SavePluginSettings(settings);
         }
 
         internal async Task<CompletionDatabaseUpdateSummary> UpdateStoredDatabaseAsync(
@@ -241,6 +249,74 @@ namespace Osiris.Extensions.HowLongToBeat
                     completionistSeconds = value.ManualResult.CompletionistSeconds
                 }
             });
+        }
+
+        public string GetStatsLibraryForOsiris()
+        {
+            var profile = settings?.TimeProfile ?? CompletionTimeProfiles.Average;
+            var games = PlayniteApi?.Database?.Games?
+                .Where(game => game != null)
+                .Select(game =>
+                {
+                    var storedSettings = gameSettingsStore.Load(game.Id);
+                    var result = storedSettings.Enabled
+                        ? SelectStoredResult(game, storedSettings)
+                        : null;
+                    var mainStorySeconds = result?.Found == true
+                        ? Math.Max(0L, result.GetMainStorySeconds(profile))
+                        : 0L;
+                    var mainExtraSeconds = result?.Found == true
+                        ? Math.Max(0L, result.GetMainExtraSeconds(profile))
+                        : 0L;
+                    var completionistSeconds = result?.Found == true
+                        ? Math.Max(0L, result.GetCompletionistSeconds(profile))
+                        : 0L;
+                    return new
+                    {
+                        gameId = game.Id.ToString("D"),
+                        found = mainStorySeconds > 0L ||
+                                mainExtraSeconds > 0L ||
+                                completionistSeconds > 0L,
+                        mainStorySeconds,
+                        mainExtraSeconds,
+                        completionistSeconds
+                    };
+                })
+                .ToList();
+
+            return JsonConvert.SerializeObject(new
+            {
+                profile,
+                games
+            });
+        }
+
+        private CompletionTimeResult SelectStoredResult(
+            Playnite.SDK.Models.Game game,
+            CompletionTimeGameSettings storedSettings)
+        {
+            var isManual = storedSettings.ManualResult?.Found == true &&
+                           storedSettings.ManualResult.RemoteGameId > 0;
+            var selected = isManual
+                ? storedSettings.ManualResult?.Clone()
+                : storedSettings.AutomaticResult?.Clone();
+
+            CompletionTimeResult cached = null;
+            cache.TryGet(game.Name, game.ReleaseDate?.Year, false, out cached);
+            if (selected == null)
+            {
+                return cached;
+            }
+
+            if (cached?.Found == true &&
+                cached.RemoteGameId == selected.RemoteGameId &&
+                cached.HasDetailedProfiles &&
+                !selected.HasDetailedProfiles)
+            {
+                return cached;
+            }
+
+            return selected;
         }
 
         public string SearchGamesForOsiris(string query)

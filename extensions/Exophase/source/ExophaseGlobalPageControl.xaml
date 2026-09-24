@@ -318,13 +318,15 @@
                         Visibility="Visible" />
 
         <Grid Grid.Row="1" Background="#090909">
-            <ScrollViewer x:Name="PageScrollViewer"
-                          HorizontalScrollBarVisibility="Disabled"
-                          VerticalScrollBarVisibility="Auto">
-                <StackPanel Margin="28,0,28,28">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="84" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="80" />
+            </Grid.RowDefinitions>
+
             <Grid x:Name="ScrollToolbar"
-                  Height="66"
-                  Margin="24,23,24,0"
+                  Grid.Row="0"
+                  Margin="52,23,52,0"
                   VerticalAlignment="Top"
                   TextElement.FontFamily="Rajdhani"
                   TextElement.FontSize="17"
@@ -347,6 +349,14 @@
                         <ComboBoxItem Content="Title" Tag="Title" />
                         <ComboBoxItem Content="Total Playtime" Tag="TimePlayed" />
                     </ComboBox>
+                    <CheckBox x:Name="ShowOnlyExophaseDataToggle"
+                              Margin="32,0,0,0"
+                              IsChecked="False"
+                              Style="{StaticResource LibraryToolbarSwitch}" />
+                    <TextBlock Text="Show only games with Exophase data"
+                               VerticalAlignment="Center"
+                               Margin="8,0,0,0"
+                               Foreground="#9C9C9C" />
                 </StackPanel>
 
                 <StackPanel x:Name="UpdateToolbarGroup"
@@ -369,9 +379,8 @@
             </Grid>
 
             <Border x:Name="GamesTableContainer"
-                    Height="640"
-                    MinHeight="520"
-                    Margin="0"
+                    Grid.Row="1"
+                    Margin="28,0"
                     Background="#090909"
                     BorderBrush="#242424"
                     BorderThickness="1"
@@ -577,8 +586,9 @@
             </Border>
 
                 <Grid x:Name="TableLegendBar"
+                      Grid.Row="2"
                       Height="62"
-                      Margin="24,0,24,18"
+                      Margin="52,0,52,18"
                       TextElement.FontFamily="Rajdhani"
                       TextElement.FontSize="17"
                       TextElement.FontWeight="SemiBold">
@@ -649,218 +659,6 @@
                     </StackPanel>
                 </Grid>
 
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="660" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-
-                    <Border x:Name="GlobalStatisticsCard"
-                            Grid.Column="0"
-                            Margin="0,0,9,0"
-                            Background="#0B0B0B"
-                            BorderBrush="#242424"
-                            BorderThickness="1"
-                            CornerRadius="0"
-                            ClipToBounds="True">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="48" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-
-                        <Border Grid.Row="0"
-                                Background="#111111"
-                                BorderBrush="#242424"
-                                BorderThickness="0,0,0,1">
-                            <TextBlock Margin="18,0"
-                                       VerticalAlignment="Center"
-                                       Text="PLAYTIME STATISTICS"
-                                       FontFamily="Rajdhani"
-                                       FontSize="15"
-                                       FontWeight="SemiBold"
-                                       Foreground="#777A82" />
-                        </Border>
-
-                        <Grid x:Name="GlobalStatisticsContent"
-                              Grid.Row="1"
-                              Margin="20,8,20,20">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="460" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
-
-                            <Grid Grid.Row="0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="420" />
-                                    <ColumnDefinition Width="200" />
-                                </Grid.ColumnDefinitions>
-
-                                <local:ExophasePlatformWheel x:Name="GlobalPlatformWheel"
-                                                            Grid.Column="0"
-                                                            Width="400"
-                                                            Height="400"
-                                                            HorizontalAlignment="Center"
-                                                            VerticalAlignment="Center" />
-
-                                <StackPanel Grid.Column="1"
-                                            Margin="10,0,0,0"
-                                            VerticalAlignment="Center">
-                                    <StackPanel Margin="0,0,0,28">
-                                        <TextBlock Text="TOTAL PLAYTIME"
-                                                   FontFamily="Rajdhani"
-                                                   FontSize="15"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#777A82" />
-                                        <TextBlock x:Name="GlobalTotalPlaytimeValue"
-                                                   Margin="0,2,0,0"
-                                                   Text="0m"
-                                                   FontFamily="Rajdhani"
-                                                   FontSize="30"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#F0F1F7" />
-                                    </StackPanel>
-
-                                    <StackPanel Margin="0,0,0,28">
-                                        <TextBlock Text="TOTAL TROPHIES"
-                                                   FontFamily="Rajdhani"
-                                                   FontSize="15"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#777A82" />
-                                        <TextBlock x:Name="GlobalTotalTrophiesValue"
-                                                   Margin="0,2,0,0"
-                                                   Text="0/0"
-                                                   FontFamily="Rajdhani"
-                                                   FontSize="30"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#F0F1F7" />
-                                    </StackPanel>
-
-                                    <StackPanel>
-                                        <TextBlock Text="PLATFORMS USED"
-                                                   FontFamily="Rajdhani"
-                                                   FontSize="15"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#777A82" />
-                                        <TextBlock x:Name="GlobalPlatformsUsedValue"
-                                                   Margin="0,2,0,0"
-                                                   Text="0"
-                                                   FontFamily="Rajdhani"
-                                                   FontSize="30"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#F0F1F7" />
-                                    </StackPanel>
-                                </StackPanel>
-                            </Grid>
-
-                            <Grid Grid.Row="1"
-                                  VerticalAlignment="Stretch">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="*" />
-                                </Grid.RowDefinitions>
-                                <TextBlock Text="TOTAL PLAYTIME BY PLATFORM"
-                                           Margin="0,0,0,14"
-                                           FontFamily="Rajdhani"
-                                           FontSize="15"
-                                           FontWeight="SemiBold"
-                                           Foreground="#777A82" />
-                                    <ItemsControl x:Name="PlatformStatisticsItems"
-                                                  Grid.Row="1"
-                                                  Width="620"
-                                                  HorizontalAlignment="Left"
-                                                  ItemsSource="{Binding PlatformStatistics}">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <UniformGrid Columns="2" />
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <StackPanel Height="36"
-                                                            Margin="0,0,0,14"
-                                                            HorizontalAlignment="Left"
-                                                            MouseEnter="OnPlatformLegendMouseEnter"
-                                                            MouseLeave="OnPlatformLegendMouseLeave"
-                                                            Opacity="{Binding LegendOpacity}"
-                                                            Orientation="Horizontal">
-                                                <Border
-                                                        Height="30"
-                                                        Padding="9,0"
-                                                        VerticalAlignment="Center"
-                                                        Background="{Binding LegendTagBrush}"
-                                                        CornerRadius="6">
-                                                    <StackPanel Orientation="Horizontal"
-                                                                VerticalAlignment="Center">
-                                                        <Grid Width="16"
-                                                              Height="16"
-                                                              Margin="0,0,6,0">
-                                                            <Viewbox Stretch="Uniform">
-                                                                <Path Data="{Binding IconGeometry}"
-                                                                      Fill="{Binding LegendForegroundBrush}" />
-                                                            </Viewbox>
-                                                            <Rectangle Fill="{Binding LegendForegroundBrush}">
-                                                                <Rectangle.OpacityMask>
-                                                                    <ImageBrush ImageSource="/Osiris.Exophase;component/Assets/osiris-logo.png"
-                                                                                Stretch="Uniform" />
-                                                                </Rectangle.OpacityMask>
-                                                                <Rectangle.Style>
-                                                                    <Style TargetType="Rectangle">
-                                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                                        <Style.Triggers>
-                                                                            <DataTrigger Binding="{Binding UseOsirisLogo}" Value="True">
-                                                                                <Setter Property="Visibility" Value="Visible" />
-                                                                            </DataTrigger>
-                                                                        </Style.Triggers>
-                                                                    </Style>
-                                                                </Rectangle.Style>
-                                                            </Rectangle>
-                                                        </Grid>
-                                                        <TextBlock Text="{Binding Platform}"
-                                                                   VerticalAlignment="Center"
-                                                                   FontFamily="Rajdhani"
-                                                                   FontSize="16"
-                                                                   FontWeight="SemiBold"
-                                                                    Foreground="{Binding LegendForegroundBrush}" />
-                                                    </StackPanel>
-                                                </Border>
-
-                                                <TextBlock Margin="10,0,0,0"
-                                                           VerticalAlignment="Center"
-                                                           Text="{Binding PlaytimeText}"
-                                                           FontFamily="Rajdhani"
-                                                           FontSize="16"
-                                                           FontWeight="SemiBold"
-                                                           Foreground="#F0F1F7" />
-                                                <TextBlock Margin="7,0,0,0"
-                                                           VerticalAlignment="Center"
-                                                           Text="{Binding PercentageText}"
-                                                           FontFamily="Rajdhani"
-                                                           FontSize="15"
-                                                           FontWeight="SemiBold"
-                                                           Foreground="#777A82" />
-                                                </StackPanel>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                            </Grid>
-                        </Grid>
-
-                        <TextBlock x:Name="GlobalStatisticsEmptyState"
-                                   Grid.Row="1"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   Text="No platform playtime is available yet."
-                                   FontFamily="Rajdhani"
-                                   FontSize="17"
-                                   FontWeight="SemiBold"
-                                   Foreground="#777A82"
-                                   Visibility="Collapsed" />
-                    </Grid>
-                    </Border>
-                </Grid>
-                </StackPanel>
-            </ScrollViewer>
         </Grid>
     </Grid>
 </UserControl>
