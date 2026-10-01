@@ -224,7 +224,7 @@ namespace Osiris.Extensions.Exophase
             }
 
             var rows = api.Database.Games
-                .Where(game => game != null)
+                .Where(game => game != null && !game.Hidden)
                 .OrderBy(game => game.Name ?? string.Empty, StringComparer.CurrentCultureIgnoreCase)
                 .Select(CreateRow)
                 .ToList();
@@ -306,6 +306,7 @@ namespace Osiris.Extensions.Exophase
                 {
                     var matchKey = ExophaseActivityParser.NormalizeTitle(game.Name);
                     var matchingLibraryGames = api.Database.Games.Count(candidate =>
+                        !candidate.Hidden &&
                         string.Equals(
                             ExophaseActivityParser.NormalizeTitle(candidate.Name),
                             matchKey,

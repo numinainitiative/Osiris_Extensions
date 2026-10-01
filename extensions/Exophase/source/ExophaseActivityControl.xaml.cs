@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Media;
 using Playnite.SDK;
 using Playnite.SDK.Controls;
+using Playnite.SDK.Events;
 using Playnite.SDK.Models;
 
 namespace Osiris.Extensions.Exophase
@@ -198,6 +199,7 @@ namespace Osiris.Extensions.Exophase
             {
                 var matchKey = ExophaseActivityParser.NormalizeTitle(game.Name);
                 var matchingLibraryGames = api.Database.Games.Count(candidate =>
+                    !candidate.Hidden &&
                     string.Equals(
                         ExophaseActivityParser.NormalizeTitle(candidate.Name),
                         matchKey,
@@ -267,6 +269,10 @@ namespace Osiris.Extensions.Exophase
             activityStore.SnapshotChanged += OnSnapshotChanged;
             gameSettingsStore.SettingsChanged += OnGameSettingsChanged;
             settings.PropertyChanged += OnSettingsChanged;
+            if (api.Database?.Games != null)
+            {
+                api.Database.Games.ItemUpdated += OnDatabaseGameUpdated;
+            }
             subscribed = true;
             Refresh();
         }
@@ -281,6 +287,10 @@ namespace Osiris.Extensions.Exophase
             activityStore.SnapshotChanged -= OnSnapshotChanged;
             gameSettingsStore.SettingsChanged -= OnGameSettingsChanged;
             settings.PropertyChanged -= OnSettingsChanged;
+            if (api.Database?.Games != null)
+            {
+                api.Database.Games.ItemUpdated -= OnDatabaseGameUpdated;
+            }
             subscribed = false;
         }
 
@@ -300,6 +310,14 @@ namespace Osiris.Extensions.Exophase
         private void OnSettingsChanged(object sender, PropertyChangedEventArgs e)
         {
             if (string.Equals(e.PropertyName, nameof(ExophaseSettings.OverrideDisplayedPlaytime), StringComparison.Ordinal))
+            {
+                Dispatcher.BeginInvoke(new Action(Refresh));
+            }
+        }
+
+        private void OnDatabaseGameUpdated(object sender, ItemUpdatedEventArgs<Game> e)
+        {
+            if (activeGame != null)
             {
                 Dispatcher.BeginInvoke(new Action(Refresh));
             }

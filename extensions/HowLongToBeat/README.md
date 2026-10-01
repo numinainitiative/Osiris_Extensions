@@ -36,7 +36,7 @@ bridge never searches HowLongToBeat or downloads new data.
 ## Identity
 
 - ID: `HowLongToBeat_fba3e63d-d1a1-4b9d-91c6-091a1220377d`
-- Version: `1.2.2`
+- Version: `1.2.4`
 - Author: `Osiris`
 - Type: `GenericPlugin`
 - Category: `Extras`

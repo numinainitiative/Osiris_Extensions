@@ -152,6 +152,10 @@ internal static class Program
         Expect(payload.Value<string>("searchType") == "games", "Search payload should target games.");
         Expect(payload.Value<string>("proof") == "value", "Search payload should contain the current proof value.");
         Expect(payload["searchTerms"].Count() == 2, "Search title should be tokenized.");
+        var tokenOnlyPayload = HowLongToBeatClient.BuildPayload("Cyberpunk 2077");
+        Expect(tokenOnlyPayload.Value<string>("searchType") == "games" &&
+               tokenOnlyPayload.Properties().All(property => !string.IsNullOrWhiteSpace(property.Name)),
+            "The current token-only handshake should not require or emit legacy proof fields.");
 
         var settings = new HowLongToBeatSettings();
         Expect(settings.TimeProfile == CompletionTimeProfiles.Average,

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using Playnite.SDK;
 using Playnite.SDK.Models;
 
 namespace Osiris.Extensions.Exophase
@@ -70,13 +72,16 @@ namespace Osiris.Extensions.Exophase
 
         private readonly ExophaseActivityStore activityStore;
         private readonly ExophaseGameSettingsStore gameSettingsStore;
+        private readonly IPlayniteAPI api;
 
         public ExophaseActivityResolver(
             ExophaseActivityStore activityStore,
-            ExophaseGameSettingsStore gameSettingsStore)
+            ExophaseGameSettingsStore gameSettingsStore,
+            IPlayniteAPI api = null)
         {
             this.activityStore = activityStore ?? throw new ArgumentNullException(nameof(activityStore));
             this.gameSettingsStore = gameSettingsStore ?? throw new ArgumentNullException(nameof(gameSettingsStore));
+            this.api = api;
         }
 
         public ExophaseResolvedActivity Resolve(Game game, bool includeBaseline)
@@ -148,12 +153,13 @@ namespace Osiris.Extensions.Exophase
                 .ToList();
 
             var importedTotal = SaturatingSum(imported.Select(item => item.PlaytimeSeconds));
-            var looksLikeLegacyImportedTotal = game.PluginId == Guid.Empty &&
+            var baselineGame = ResolveActiveTrackingGame(game);
+            var looksLikeLegacyImportedTotal = baselineGame.PluginId == Guid.Empty &&
                                                importedTotal > 0 &&
-                                               game.Playtime == importedTotal;
+                                               baselineGame.Playtime == importedTotal;
             if (includeBaseline && !looksLikeLegacyImportedTotal)
             {
-                ApplyNativeBaseline(platforms, game);
+                ApplyNativeBaseline(platforms, baselineGame);
             }
 
             platforms = platforms
@@ -180,6 +186,44 @@ namespace Osiris.Extensions.Exophase
             return result;
         }
 
+        private Game ResolveActiveTrackingGame(Game parentGame)
+        {
+            if (parentGame == null || api?.Database?.Games == null)
+            {
+                return parentGame;
+            }
+
+            try
+            {
+                var bridgeType = AppDomain.CurrentDomain.GetAssemblies()
+                    .Select(assembly => assembly.GetType(
+                        "OsirisTheme.OsirisEditionTrackingBridge",
+                        false))
+                    .FirstOrDefault(type => type != null);
+                var method = bridgeType?.GetMethod(
+                    "GetActiveTrackingGameId",
+                    BindingFlags.Public | BindingFlags.Static,
+                    null,
+                    new[] { typeof(string) },
+                    null);
+                var value = method?.Invoke(
+                    null,
+                    new object[] { parentGame.Id.ToString("D") }) as string;
+                Guid trackingGameId;
+                if (Guid.TryParse(value, out trackingGameId))
+                {
+                    return api.Database.Games.Get(trackingGameId) ?? parentGame;
+                }
+            }
+            catch
+            {
+                // Keep Exophase compatible with Osiris builds that predate the
+                // edition tracking bridge or with non-Osiris Playnite hosts.
+            }
+
+            return parentGame;
+        }
+
         public static string NormalizePlatformKey(string platform)
         {
             var canonical = ExophasePlatformVisualCatalog.Resolve(platform).DisplayName;
@@ -198,10 +242,16 @@ namespace Osiris.Extensions.Exophase
             if (existing != null)
             {
                 // The native database value is authoritative for the game's
-                // current library source. Exophase only contributes time from
-                // different platforms, so the matching remote bucket is
-                // deliberately replaced instead of added or max-merged.
-                existing.PlaytimeSeconds = game.Playtime;
+                // current library source once that library has actually
+                // synchronized a value. A newly restored hidden backing game
+                // begins at zero, however, and must not erase an already
+                // synchronized Exophase bucket while its library import is
+                // still pending. The matching bucket remains the baseline so
+                // a later non-zero native update replaces it automatically.
+                if (game.Playtime > 0UL || existing.PlaytimeSeconds == 0UL)
+                {
+                    existing.PlaytimeSeconds = game.Playtime;
+                }
                 existing.IsBaseline = true;
                 return;
             }

@@ -38,7 +38,10 @@ namespace Osiris.Extensions.Exophase
             extractionService = new ExophaseExtractionService(api, userDataPath);
             activityStore = new ExophaseActivityStore(userDataPath);
             gameSettingsStore = new ExophaseGameSettingsStore(userDataPath);
-            activityResolver = new ExophaseActivityResolver(activityStore, gameSettingsStore);
+            activityResolver = new ExophaseActivityResolver(
+                activityStore,
+                gameSettingsStore,
+                api);
             settings = LoadPluginSettings<ExophaseSettings>() ?? new ExophaseSettings();
             settings.Attach(this, new ExophaseAuthenticationService(api));
             globalPage = new ExophaseGlobalPageSidebarItem(
@@ -136,7 +139,7 @@ namespace Osiris.Extensions.Exophase
         public string GetStatsLibraryForOsiris()
         {
             var games = PlayniteApi.Database.Games
-                .Where(game => game != null)
+                .Where(game => game != null && !game.Hidden)
                 .Select(game =>
                 {
                     ExophaseResolvedActivity editableActivity;
@@ -201,6 +204,7 @@ namespace Osiris.Extensions.Exophase
             {
                 var matchKey = ExophaseActivityParser.NormalizeTitle(game.Name);
                 var matchingLibraryGames = PlayniteApi.Database.Games.Count(candidate =>
+                    !candidate.Hidden &&
                     string.Equals(
                         ExophaseActivityParser.NormalizeTitle(candidate.Name),
                         matchKey,

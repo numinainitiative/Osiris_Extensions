@@ -191,45 +191,57 @@ namespace Osiris.Extensions.HowLongToBeat
 
         private async Task<JObject> SendSearchAsync(string gameName, CancellationToken cancellationToken)
         {
-            using (var initResponse = await httpClient.GetAsync(
-                SearchEndpoint + "/init?t=" + GetUnixMilliseconds(), cancellationToken).ConfigureAwait(false))
+            for (var attempt = 0; attempt < 2; attempt++)
             {
-                if (!initResponse.IsSuccessStatusCode)
+                using (var initResponse = await httpClient.GetAsync(
+                    SearchEndpoint + "/init?t=" + GetUnixMilliseconds(), cancellationToken).ConfigureAwait(false))
                 {
-                    throw new HttpRequestException($"Completion-time search initialization failed ({(int)initResponse.StatusCode}).");
-                }
-                var initJson = JObject.Parse(await initResponse.Content.ReadAsStringAsync().ConfigureAwait(false));
-                var token = initJson.Value<string>("token");
-                var key = initJson.Value<string>("hpKey");
-                var value = initJson.Value<string>("hpVal");
-                if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(key) || value == null)
-                {
-                    throw new InvalidOperationException("The completion-time search handshake was incomplete.");
-                }
-
-                var payload = BuildPayload(gameName, key, value);
-                using (var request = new HttpRequestMessage(HttpMethod.Post, SearchEndpoint))
-                {
-                    request.Headers.Referrer = new Uri(SiteRoot);
-                    request.Headers.TryAddWithoutValidation("Origin", "https://howlongtobeat.com");
-                    request.Headers.TryAddWithoutValidation("x-auth-token", token);
-                    request.Headers.TryAddWithoutValidation("x-hp-key", key);
-                    request.Headers.TryAddWithoutValidation("x-hp-val", value);
-                    request.Content = new StringContent(payload.ToString(Formatting.None), Encoding.UTF8, "application/json");
-
-                    using (var response = await httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
+                    if (!initResponse.IsSuccessStatusCode)
                     {
-                        if (!response.IsSuccessStatusCode)
+                        throw new HttpRequestException($"Completion-time search initialization failed ({(int)initResponse.StatusCode}).");
+                    }
+                    var initJson = JObject.Parse(await initResponse.Content.ReadAsStringAsync().ConfigureAwait(false));
+                    var token = initJson.Value<string>("token");
+                    var key = initJson.Value<string>("hpKey");
+                    var value = initJson.Value<string>("hpVal");
+                    if (string.IsNullOrWhiteSpace(token))
+                    {
+                        throw new InvalidOperationException("The completion-time search handshake was incomplete.");
+                    }
+
+                    var payload = BuildPayload(gameName, key, value);
+                    using (var request = new HttpRequestMessage(HttpMethod.Post, SearchEndpoint))
+                    {
+                        request.Headers.Referrer = new Uri(SiteRoot);
+                        request.Headers.TryAddWithoutValidation("Origin", "https://howlongtobeat.com");
+                        request.Headers.TryAddWithoutValidation("x-auth-token", token);
+                        if (!string.IsNullOrWhiteSpace(key) && value != null)
                         {
-                            throw new HttpRequestException($"Completion-time search failed ({(int)response.StatusCode}).");
+                            request.Headers.TryAddWithoutValidation("x-hp-key", key);
+                            request.Headers.TryAddWithoutValidation("x-hp-val", value);
                         }
-                        return JObject.Parse(await response.Content.ReadAsStringAsync().ConfigureAwait(false));
+                        request.Content = new StringContent(payload.ToString(Formatting.None), Encoding.UTF8, "application/json");
+
+                        using (var response = await httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
+                        {
+                            if (response.StatusCode == HttpStatusCode.Forbidden && attempt == 0)
+                            {
+                                continue;
+                            }
+                            if (!response.IsSuccessStatusCode)
+                            {
+                                throw new HttpRequestException($"Completion-time search failed ({(int)response.StatusCode}).");
+                            }
+                            return JObject.Parse(await response.Content.ReadAsStringAsync().ConfigureAwait(false));
+                        }
                     }
                 }
             }
+
+            throw new HttpRequestException("Completion-time search authorization failed after refreshing its token.");
         }
 
-        internal static JObject BuildPayload(string gameName, string proofKey, string proofValue)
+        internal static JObject BuildPayload(string gameName, string proofKey = null, string proofValue = null)
         {
             var terms = new JArray((gameName ?? string.Empty)
                 .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries));
@@ -272,7 +284,10 @@ namespace Osiris.Extensions.HowLongToBeat
                 },
                 ["useCache"] = true
             };
-            payload[proofKey] = proofValue;
+            if (!string.IsNullOrWhiteSpace(proofKey) && proofValue != null)
+            {
+                payload[proofKey] = proofValue;
+            }
             return payload;
         }
 

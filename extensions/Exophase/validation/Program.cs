@@ -85,6 +85,8 @@ internal static class Program
         var globalPageCode = File.ReadAllText(Path.Combine(extensionRoot, "source", "ExophaseGlobalPageControl.cs"));
         var platformTimelineCode = File.ReadAllText(Path.Combine(extensionRoot, "source", "ExophasePlatformTimeline.cs"));
         var globalPagePluginCode = File.ReadAllText(Path.Combine(extensionRoot, "source", "ExophasePlugin.cs"));
+        var activityControlCode = File.ReadAllText(Path.Combine(extensionRoot, "source", "ExophaseActivityControl.xaml.cs"));
+        var activityResolverCode = File.ReadAllText(Path.Combine(extensionRoot, "source", "ExophaseActivityResolver.cs"));
         Expect(viewSource.Contains("Width=\"760\"") &&
                viewSource.Contains("Width=\"44\" Height=\"24\"") &&
                viewSource.Contains("OverrideDisplayedPlaytime") &&
@@ -104,6 +106,13 @@ internal static class Program
                authSource.Contains("DeleteDomainCookies") &&
                !authSource.Contains("Password"),
             "Authentication should use the Middle Window webview and cookie-only session handling.");
+        Expect(activityResolverCode.Contains("OsirisTheme.OsirisEditionTrackingBridge") &&
+               activityResolverCode.Contains("ResolveActiveTrackingGame") &&
+               activityControlCode.Contains("ItemUpdated += OnDatabaseGameUpdated") &&
+               activityControlCode.Contains("!candidate.Hidden") &&
+               globalPageCode.Contains("game != null && !game.Hidden") &&
+               globalPagePluginCode.Contains("game != null && !game.Hidden"),
+            "Edition-aware Exophase activity should use the active tracking identity, refresh on edition changes, and hide backing records.");
 
         var globalPage = new ExophaseGlobalPageSidebarItem();
         var globalView = globalPage.Opened?.Invoke() as ExophaseGlobalPageControl;
@@ -866,11 +875,13 @@ internal static class Program
                 Playtime = 0UL
             };
             var unplayedSteamTotal = resolver.Resolve(unplayedSteamGame, true);
-            Expect(unplayedSteamTotal.PositivePlatformCount == 1 &&
+            Expect(unplayedSteamTotal.PositivePlatformCount == 2 &&
                    unplayedSteamTotal.CanDisplayTotal &&
-                   unplayedSteamTotal.TotalPlaytimeSeconds == 34UL * 3600UL &&
-                   unplayedSteamTotal.Platforms.Single(item => item.Platform == "Steam").PlaytimeSeconds == 0UL,
-                "A zero-hour integrated source should still unlock the total when another platform has positive time.");
+                   unplayedSteamTotal.TotalPlaytimeSeconds == 53UL * 3600UL &&
+                   unplayedSteamTotal.Platforms.Single(item => item.Platform == "Steam").PlaytimeSeconds ==
+                       19UL * 3600UL &&
+                   unplayedSteamTotal.Platforms.Single(item => item.Platform == "Steam").IsBaseline,
+                "A newly restored zero-hour integrated source should preserve synchronized platform time until the native library supplies a real value.");
             var steamOnlyGame = new Game
             {
                 Id = Guid.NewGuid(),
