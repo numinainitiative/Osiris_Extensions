@@ -8,19 +8,29 @@ namespace Osiris.Extensions.Stats
 {
     public sealed class StatsPlugin : GenericPlugin
     {
+        public static StatsPlugin Current { get; private set; }
+
         private readonly StatsGlobalPageSidebarItem globalPage;
         private readonly StatsSessionLedger sessionLedger;
+        private readonly StatsHomeWeeklyProvider homeWeeklyProvider;
 
         public override Guid Id { get; } = Guid.Parse("511681f5-d2f5-41ae-8b73-fa3adcc86c85");
 
         public StatsPlugin(IPlayniteAPI api) : base(api)
         {
+            Current = this;
             Properties = new GenericPluginProperties
             {
                 HasSettings = false
             };
             sessionLedger = new StatsSessionLedger(api);
+            homeWeeklyProvider = new StatsHomeWeeklyProvider(api, sessionLedger);
             globalPage = new StatsGlobalPageSidebarItem(api, sessionLedger);
+        }
+
+        public string GetHomeWeeklyStatsForOsiris()
+        {
+            return homeWeeklyProvider.GetSnapshotJson();
         }
 
         public override IEnumerable<SidebarItem> GetSidebarItems()

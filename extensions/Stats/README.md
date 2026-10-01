@@ -134,4 +134,4 @@ The supplied `source/icon.png` is the extension's icon in the installed list
 and global-page navigation. The build copies this file unchanged; it does not
 generate a replacement icon.
 
-Stats is intentionally not listed in the public extension catalog yet.
+Stats is distributed through the public Osiris extension catalog.
