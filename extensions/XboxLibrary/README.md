@@ -1,7 +1,7 @@
 # Xbox Library
 
 - Identity: `XboxLibrary_7e4fbb5e-2ae3-48d4-8ba0-6b30e7a4e287`
-- Installed version: `1.0`
+- Installed version: `1.0.1`
 - Status: public Osiris extension; upstream provenance and MIT license recorded
   in `UPSTREAM.md` and `LICENSE`.
 
@@ -16,10 +16,10 @@
 
 ## Build
 
-Run `build.ps1`. The build references the Development Osiris SDK and Xbox
-`Windows.winmd`, and writes output beneath the ignored `source/bin` directory.
+Run `build.ps1`. The build references the Development Osiris SDK and pinned
+Microsoft Windows SDK contracts, and writes output beneath the ignored `source/bin` directory.
 The Windows metadata is a compile-time SDK reference supplied by Windows and is
 not copied into the extension package.
 
-Run `package.ps1` to rebuild and create `XboxLibrary_1.0.pext` plus its SHA-256
-manifest beneath the ignored `artifacts/XboxLibrary/1.0` directory.
+Run `package.ps1` to rebuild and create `XboxLibrary_1.0.1.pext` plus its SHA-256
+manifest beneath the ignored `artifacts/XboxLibrary/1.0.1` directory.

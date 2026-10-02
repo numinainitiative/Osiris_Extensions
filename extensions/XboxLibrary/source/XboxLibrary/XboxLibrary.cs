@@ -289,7 +289,11 @@ public class XboxLibrary : LibraryPluginBase<XboxLibrarySettingsViewModel>
 		}
 		if (ex != null)
 		{
-			PlayniteApi.Notifications.Add(new NotificationMessage(base.ImportErrorMessageId, string.Format(PlayniteApi.Resources.GetString("LOCLibraryImportError"), Name) + Environment.NewLine + ex.Message, NotificationType.Error, delegate
+			string text = string.Format(PlayniteApi.Resources.GetString("LOCLibraryImportError"), Name);
+			text += Environment.NewLine + (IsAuthenticationError(ex)
+				? "Authenticate again in Settings > Libraries > Xbox."
+				: ex.Message);
+			PlayniteApi.Notifications.Add(new NotificationMessage(base.ImportErrorMessageId, text, NotificationType.Error, delegate
 			{
 				OpenSettingsView();
 			}));
@@ -298,7 +302,43 @@ public class XboxLibrary : LibraryPluginBase<XboxLibrarySettingsViewModel>
 		{
 			PlayniteApi.Notifications.Remove(base.ImportErrorMessageId);
 		}
-		return list;
+		return list.Select(CreateLibrarySyncRecord);
+	}
+
+	private static bool IsAuthenticationError(Exception error)
+	{
+		for (Exception current = error; current != null; current = current.InnerException)
+		{
+			string message = current.Message ?? string.Empty;
+			if (message.IndexOf("not authenticated", StringComparison.OrdinalIgnoreCase) >= 0 ||
+				message.IndexOf("unauthorized", StringComparison.OrdinalIgnoreCase) >= 0 ||
+				message.IndexOf("401", StringComparison.OrdinalIgnoreCase) >= 0 ||
+				message.IndexOf("400 (Bad Request)", StringComparison.OrdinalIgnoreCase) >= 0)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private static GameMetadata CreateLibrarySyncRecord(GameMetadata source)
+	{
+		// A library integration supplies identity and runtime state only.
+		// Descriptive metadata and artwork belong exclusively to the
+		// metadata extensions selected in Osiris settings.
+		return new GameMetadata
+		{
+			GameId = source.GameId,
+			Name = source.Name,
+			IsInstalled = source.IsInstalled,
+			InstallDirectory = source.InstallDirectory,
+			GameActions = source.GameActions,
+			Roms = source.Roms,
+			Playtime = source.Playtime,
+			PlayCount = source.PlayCount,
+			LastActivity = source.LastActivity
+		};
 	}
 
 	public override IEnumerable<InstallController> GetInstallActions(GetInstallActionsArgs args)

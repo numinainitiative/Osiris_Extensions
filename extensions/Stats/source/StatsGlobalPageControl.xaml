@@ -310,8 +310,7 @@
         <Border Grid.Column="1" Width="52" Height="52" Padding="11" VerticalAlignment="Center" Background="#0B0B0B" BorderBrush="#C8C8C8" BorderThickness="1" CornerRadius="8">
           <Viewbox Stretch="Uniform">
             <Canvas Width="24" Height="24">
-              <Ellipse Canvas.Left="2" Canvas.Top="2" Width="20" Height="20" Stroke="#F0F1F7" StrokeThickness="1.8" />
-              <Path Data="M6,12 L10,16 L18,8" Stroke="#F0F1F7" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+              <Path Data="{Binding IconGeometry}" Stroke="#F0F1F7" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
             </Canvas>
           </Viewbox>
         </Border>
@@ -326,7 +325,7 @@
       <RowDefinition Height="*" />
     </Grid.RowDefinitions>
     <ContentControl x:Name="FixedHeaderHost" Grid.Row="0" MinHeight="76" MaxHeight="76" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Top" Visibility="Visible" />
-    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" HorizontalContentAlignment="Stretch">
+    <ScrollViewer x:Name="StatsScrollViewer" Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" HorizontalContentAlignment="Stretch" CanContentScroll="False" PanningMode="VerticalOnly">
       <StackPanel Margin="48,56,48,48" HorizontalAlignment="Stretch" VerticalAlignment="Top">
         <Grid Width="1644" HorizontalAlignment="Left">
           <Button Style="{StaticResource StatsSectionToggleStyle}" Click="WeeklyStatsHeader_Click">

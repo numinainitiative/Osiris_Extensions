@@ -1,7 +1,7 @@
 # Steam Library
 
 - Identity: `SteamLibrary_cb91dfc9-b977-43bf-8e70-55f46e410fab`
-- Osiris version: `1.0.2`
+- Osiris version: `1.0.3`
 - Upstream code baseline: Steam Library `2.40`
 - Status: public Osiris extension
 
@@ -39,7 +39,7 @@ outside Git and invokes Visual Studio MSBuild. Build output is written beneath
 the ignored `source/Libraries/SteamLibrary/bin` directory.
 
 Run `package.ps1` to rebuild and create the installable
-`SteamLibrary_1.0.1.pext` archive plus its SHA-256 JSON manifest beneath the
-ignored `artifacts/SteamLibrary/1.0.1` directory.
+`SteamLibrary_1.0.3.pext` archive plus its SHA-256 JSON manifest beneath the
+ignored `artifacts/SteamLibrary/1.0.3` directory.
 
 See `UPSTREAM.md` and `LICENSES/` for provenance and licensing.

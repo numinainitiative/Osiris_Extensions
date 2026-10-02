@@ -15,6 +15,9 @@
   <PropertyGroup />
   <ItemGroup />
   <ItemGroup>
+    <PackageReference Include="Microsoft.Windows.SDK.Contracts" Version="10.0.19041.1" PrivateAssets="all" ExcludeAssets="runtime" />
+  </ItemGroup>
+  <ItemGroup>
     <None Update="extension.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Update="icon.png" CopyToOutputDirectory="PreserveNewest" />
     <None Update="Localization\**\*" CopyToOutputDirectory="PreserveNewest" />
@@ -28,10 +31,6 @@
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Management" />
     <Reference Include="PresentationCore" />
-    <Reference Include="Windows">
-      <HintPath>$(OsirisDevelopmentRoot)\Data\Extensions\Libraries\XboxLibrary_7e4fbb5e-2ae3-48d4-8ba0-6b30e7a4e287\Windows.winmd</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="System.Xml" />
     <Reference Include="System.Web" />
     <Reference Include="System.Windows.Forms" />

@@ -11,5 +11,6 @@ $repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\.."))
     -BuildScript (Join-Path $PSScriptRoot "build.ps1") `
     -BuildOutput (Join-Path $PSScriptRoot "source\bin\$Configuration\net462") `
     -LicensePath (Join-Path $PSScriptRoot "LICENSE") `
+    -AdditionalExcludedFilePatterns @("System.*.dll", "netstandard.dll", "Microsoft.Win32.Primitives.dll") `
     -Configuration $Configuration `
     -Force:$Force

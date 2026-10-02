@@ -10,6 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Playnite.SDK;
 using Playnite.SDK.Data;
 using Playnite.SDK.Models;
@@ -56,12 +57,21 @@ namespace Osiris.Extensions.Stats
         private double dragItemTopOrigin;
         private int dragOriginColumn;
         private int dragOriginRow;
+        private readonly DispatcherTimer smoothScrollTimer;
+        private DateTime smoothScrollStartedAt;
+        private double smoothScrollStartOffset;
+        private double smoothScrollTargetOffset;
 
         internal StatsGlobalPageControl(IPlayniteAPI api, StatsSessionLedger sessionLedger)
         {
             this.api = api;
             this.sessionLedger = sessionLedger;
             InitializeComponent();
+            smoothScrollTimer = new DispatcherTimer(DispatcherPriority.Render)
+            {
+                Interval = TimeSpan.FromMilliseconds(15)
+            };
+            smoothScrollTimer.Tick += OnSmoothScrollTimerTick;
             layoutPath = Path.Combine(
                 api.Paths.ConfigurationPath,
                 "Settings",
@@ -101,6 +111,10 @@ namespace Osiris.Extensions.Stats
             }
 
             SubscribeToLibrary();
+            // Initial library subscription performs cleanup. Attach scrolling
+            // afterwards so that cleanup cannot remove the active page handler.
+            StatsScrollViewer.PreviewMouseWheel -= OnStatsScrollViewerPreviewMouseWheel;
+            StatsScrollViewer.PreviewMouseWheel += OnStatsScrollViewerPreviewMouseWheel;
             sessionLedger.Changed -= OnSessionHistoryChanged;
             sessionLedger.Changed += OnSessionHistoryChanged;
             RefreshLibraryStats();
@@ -108,6 +122,8 @@ namespace Osiris.Extensions.Stats
 
         private void OnUnloaded(object sender, RoutedEventArgs args)
         {
+            StatsScrollViewer.PreviewMouseWheel -= OnStatsScrollViewerPreviewMouseWheel;
+            smoothScrollTimer.Stop();
             if (layoutEditMode)
             {
                 CancelLayoutEdit();
@@ -129,6 +145,55 @@ namespace Osiris.Extensions.Stats
             subscribedGames.ItemUpdated -= OnGameUpdated;
             subscribedGames = null;
             UnsubscribeFromFilterPresets();
+        }
+
+        private void OnStatsScrollViewerPreviewMouseWheel(object sender, MouseWheelEventArgs args)
+        {
+            if (args.Handled || StatsScrollViewer.ScrollableHeight <= 0d)
+            {
+                return;
+            }
+
+            var notches = args.Delta / (double)Mouse.MouseWheelDeltaForOneLine;
+            if (Math.Abs(notches) < 0.01d)
+            {
+                return;
+            }
+
+            var currentTarget = smoothScrollTimer.IsEnabled
+                ? smoothScrollTargetOffset
+                : StatsScrollViewer.VerticalOffset;
+            var target = Math.Max(
+                0d,
+                Math.Min(
+                    StatsScrollViewer.ScrollableHeight,
+                    currentTarget - (notches * 150d)));
+            if (Math.Abs(target - currentTarget) < 0.1d)
+            {
+                return;
+            }
+
+            smoothScrollStartOffset = StatsScrollViewer.VerticalOffset;
+            smoothScrollTargetOffset = target;
+            smoothScrollStartedAt = DateTime.UtcNow;
+            smoothScrollTimer.Start();
+            args.Handled = true;
+        }
+
+        private void OnSmoothScrollTimerTick(object sender, EventArgs args)
+        {
+            var elapsed = (DateTime.UtcNow - smoothScrollStartedAt).TotalMilliseconds;
+            var progress = Math.Max(0d, Math.Min(1d, elapsed / 175d));
+            var easedProgress = 1d - Math.Pow(1d - progress, 3d);
+            StatsScrollViewer.ScrollToVerticalOffset(
+                smoothScrollStartOffset +
+                ((smoothScrollTargetOffset - smoothScrollStartOffset) * easedProgress));
+
+            if (progress >= 1d)
+            {
+                StatsScrollViewer.ScrollToVerticalOffset(smoothScrollTargetOffset);
+                smoothScrollTimer.Stop();
+            }
         }
 
         private void SubscribeToLibrary()
@@ -1936,6 +2001,8 @@ namespace Osiris.Extensions.Stats
             public int Rank { get; set; }
 
             public string Name { get; set; }
+
+            public Geometry IconGeometry => StatsStatusIconCatalog.Get(Name);
 
             public string DetailText { get; set; }
         }

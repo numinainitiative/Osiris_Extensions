@@ -26,23 +26,21 @@ namespace SteamLibrary.Services
         {
             var str = await DownloadPageSourceAsync("https://store.steampowered.com/dynamicstore/userdata/");
 
-            if (str.Trim().StartsWith("<html", StringComparison.InvariantCultureIgnoreCase) &&
-                str.IndexOf("<body", StringComparison.InvariantCultureIgnoreCase) >= 0)
+            // Chromium renders JSON responses inside a <pre> element and may append
+            // its JSON viewer markup after it. Extract only the response payload;
+            // stripping just the outer body leaves that markup attached to the JSON.
+            var pre = Regex.Match(
+                str,
+                @"<pre\b[^>]*>(?<content>[\s\S]*?)</pre\s*>",
+                RegexOptions.IgnoreCase);
+            if (pre.Success)
             {
-                var body = Regex.Match(
-                    str,
-                    @"<body\b[^>]*>(?<content>[\s\S]*?)</body\s*>",
-                    RegexOptions.IgnoreCase);
-                if (body.Success)
-                {
-                    str = body.Groups["content"].Value;
-                    str = Regex.Replace(
-                        str,
-                        @"^\s*<pre\b[^>]*>|</pre\s*>\s*$",
-                        string.Empty,
-                        RegexOptions.IgnoreCase);
-                    str = HttpUtility.HtmlDecode(str);
-                }
+                str = HttpUtility.HtmlDecode(pre.Groups["content"].Value);
+            }
+            else if (Regex.IsMatch(str, @"<html\b|<body\b|<form\b", RegexOptions.IgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    PlayniteApi.Resources.GetString(LOC.SteamNotLoggedInError));
             }
 
             var serializer = new JavaScriptSerializer

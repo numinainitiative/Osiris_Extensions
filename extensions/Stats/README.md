@@ -63,6 +63,8 @@ List headers and View More actions use the same 16 px type as ordinary card
 labels, with View More rendered in the darker `#444444`; row ranks use 19 px,
 and row titles and right-side values use 20 px. Status List follows the same ranked,
 outlined-icon-tile, title, value, and header/action structure as Libraries.
+Each status uses the exact canonical Game Details icon. The main page animates
+mouse-wheel scrolling and leaves nested list panels non-scrollable.
 
 How Long To Beat begins with a row containing single-unit With Data and Without
 Data cards followed by double-unit total Main Story, Main + Extras, and
