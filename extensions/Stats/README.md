@@ -1,5 +1,65 @@
 # Stats
 
+## Text insights
+
+Stats settings now expose General followed by an expandable Insights navigation
+group containing Global and Per Game. Global has a master switch plus Longest
+Gaming Session, Most Played Game, Game Anniversaries, Oldest Game, Total Played
+Time, Not Played Reminder and First Played Birthdays. Per Game has a master
+switch, Longest Session and Game Age.
+All default on. Master switches sit beside the page headings and only suppress
+display; individual switches remain editable and retain their preferences even
+when the master is off. Save commits settings; Cancel discards edits. Changes apply live:
+Home refreshes the selected insight after Save, and the game card refreshes
+within two seconds. The pre-existing per-game switch remains an additional gate
+for Game Details only. Home uses the Stats Global switches as well as its
+existing Show Fun Stats visibility preference; per-game toggles do not suppress global
+session statistics. No session history or release dates are changed.
+
+The extension view copies the exact Backup switch/text resources because those
+resources live outside the shared extension host's scope. The host supplies its
+standard form inset, typography pass and Save/Cancel footer. The Insights group
+reuses the canonical settings expandable-group template. Other extensions'
+navigation remains unchanged.
+
+Stats supplies one randomly selected Home insight per application session,
+replacing the old hard-coded welcome statistic. The Game Details Insights card
+appears below Details only when applicable text exists. Game insight types
+are longest recorded gaming session and game age in completed years. Session
+insights use Stats' observed session history, never lifetime playtime or an
+invented duration. Games without recorded sessions can still show their age.
+Age uses the release date and local calendar date; missing or future dates do
+not qualify. Game insights are separate Details-style rows. Home's selection
+stays stable until restart; its duration and date retain the blue highlights.
+Per-game birthday notifications are not generated. Global release anniversaries
+require a complete release month/day, occur only on that exact date in a later
+year, and exclude future/missing dates. First-play birthdays use the earliest
+positive Stats session in the retained ledger and explicitly say "first recorded
+play"; older unobserved play history is not invented. Global playtime/rankings
+reuse the Stats page's unified Exophase/native resolver. Unplayed reminders
+require no native playtime/count, no unified playtime, no last activity and no
+recorded session; added dates must be at least a day old. Age uses completed
+years/months/days with singular/plural handling. Hidden games are excluded.
+
+Home chooses an eligible insight type randomly, then a game within that type,
+so a large unplayed library does not drown out the other insight types. Selection
+is stable until restart, settings Save, or a change of calendar date. Empty
+candidate pools hide the text and retry when data becomes available. Structured
+segments highlight names and key figures in #8EC8EE; punctuation/ordinary text
+retain Home's existing colour. No placeholder examples or fake dates are saved.
+
+Game Edit -> Extensions -> Stats Insights provides an enabled-by-default switch.
+Save persists `Enabled=True/False` in the game's `OsirisStatsInsights.ini`;
+Cancel discards changes. Hidden games are excluded from insights; the per-game
+enable switch applies to the Game Details card, not global session statistics.
+Game Details refreshes its insight eligibility while open. The setting changes
+Home's candidate pool on the next application launch. It never disables ordinary
+Stats cards or deletes session history. Its settings page copies the canonical
+Backup styles exactly because the settings-grid resource scope is unavailable
+from game edit; the existing Save/Cancel footer owns the transaction.
+
+Validation: `dotnet run --project tests/InsightsValidation.csproj -c Release`.
+
 Stats is an Osiris global-page extension. It owns the Stats entry shown in the
 installed extensions section of the navigation panel. The page is split into
 independently collapsible Weekly Stats, All Time Stats, and How Long To Beat
@@ -135,5 +195,6 @@ secondary text.
 The supplied `source/icon.png` is the extension's icon in the installed list
 and global-page navigation. The build copies this file unchanged; it does not
 generate a replacement icon.
+It is the user's supplied Stats PNG, including its coloured background.
 
 Stats is distributed through the public Osiris extension catalog.

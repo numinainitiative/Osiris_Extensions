@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+  <PropertyGroup>
+    <TargetFramework>net462</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>Osiris.ScreenshotsGallery</AssemblyName>
+    <RootNamespace>Osiris.Extensions.ScreenshotsGallery</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <DebugType>None</DebugType>
+    <OsirisDevelopmentRoot>$(MSBuildThisFileDirectory)..\..\..\..\..\Programming\Development\Osiris</OsirisDevelopmentRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Playnite.SDK">
+      <HintPath>$(OsirisDevelopmentRoot)\App\Playnite.SDK.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <None Update="extension.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="icon.png" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

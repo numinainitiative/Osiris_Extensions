@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+ <PropertyGroup><TargetFramework>net462</TargetFramework><UseWPF>true</UseWPF><OutputType>Exe</OutputType><PlatformTarget>x86</PlatformTarget><LangVersion>latest</LangVersion><EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup>
+ <ItemGroup>
+  <Compile Include="PresentationValidation.cs"/>
+  <ProjectReference Include="../source/Osiris.ScreenshotsGallery.csproj"/>
+  <Reference Include="Playnite.SDK"><HintPath>../../../../../Programming/Development/Osiris/App/Playnite.SDK.dll</HintPath></Reference>
+ </ItemGroup>
+</Project>

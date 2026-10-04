@@ -1,0 +1,98 @@
+<UserControl x:Class="Osiris.Extensions.Stats.StatsSettingsView"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <UserControl.Resources>
+ <!-- Exact Backup styles copied because the shared extension host cannot resolve the settings-grid resource scope. -->
+ <Style x:Key="OsirisSettingsTitleStyle"
+                                                       TargetType="{x:Type TextBlock}">
+                                                    <Setter Property="Foreground" Value="#F0F1F7" />
+                                                    <Setter Property="FontFamily" Value="{DynamicResource FontFamily}" />
+                                                    <Setter Property="FontSize" Value="17" />
+                                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                                    <Setter Property="HorizontalAlignment" Value="Left" />
+                                                    <Setter Property="TextAlignment" Value="Left" />
+                                                    <Setter Property="Margin" Value="0,0,0,0" />
+                                                </Style>
+<Style x:Key="OsirisSettingsDescriptionStyle"
+                                                       TargetType="{x:Type TextBlock}">
+                                                    <Setter Property="Foreground" Value="#777A82" />
+                                                    <Setter Property="FontFamily" Value="{DynamicResource FontFamily}" />
+                                                    <Setter Property="FontSize" Value="15" />
+                                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                                    <Setter Property="HorizontalAlignment" Value="Left" />
+                                                    <Setter Property="TextAlignment" Value="Left" />
+                                                    <Setter Property="Margin" Value="0,5,0,34" />
+                                                    <Setter Property="TextWrapping" Value="Wrap" />
+                                                </Style>
+<Style x:Key="OsirisSettingsLabelStyle"
+                                                       TargetType="{x:Type TextBlock}">
+                                                    <Setter Property="Foreground" Value="#F0F1F7" />
+                                                    <Setter Property="FontFamily" Value="{DynamicResource FontFamily}" />
+                                                    <Setter Property="FontSize" Value="17" />
+                                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                                    <Setter Property="VerticalAlignment" Value="Center" />
+                                                    <Setter Property="TextWrapping" Value="Wrap" />
+                                                </Style>
+<Style x:Key="OsirisSettingsToggleStyle"
+                                                       TargetType="{x:Type CheckBox}">
+                                                    <Setter Property="Width" Value="44" />
+                                                    <Setter Property="Height" Value="24" />
+                                                    <Setter Property="Cursor" Value="Hand" />
+                                                    <Setter Property="HorizontalAlignment" Value="Left" />
+                                                    <Setter Property="VerticalAlignment" Value="Center" />
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="{x:Type CheckBox}">
+                                                                <Grid Width="44"
+                                                                      Height="24"
+                                                                      Background="Transparent">
+                                                                    <Border x:Name="ToggleTrack"
+                                                                            Background="Transparent"
+                                                                            BorderBrush="#34363D"
+                                                                            BorderThickness="1"
+                                                                            CornerRadius="12" />
+                                                                    <Ellipse x:Name="ToggleThumb"
+                                                                             Width="18"
+                                                                             Height="18"
+                                                                             Margin="3"
+                                                                             HorizontalAlignment="Left"
+                                                                             VerticalAlignment="Center"
+                                                                             Fill="#9EA0A6" />
+                                                                </Grid>
+                                                                <ControlTemplate.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter TargetName="ToggleTrack" Property="BorderBrush" Value="#555860" />
+                                                                    </Trigger>
+                                                                    <Trigger Property="IsChecked" Value="True">
+                                                                        <Setter TargetName="ToggleTrack" Property="Background" Value="#1B1B1B" />
+                                                                        <Setter TargetName="ToggleTrack" Property="BorderBrush" Value="#666666" />
+                                                                        <Setter TargetName="ToggleThumb" Property="HorizontalAlignment" Value="Right" />
+                                                                        <Setter TargetName="ToggleThumb" Property="Fill" Value="#F7F8FA" />
+                                                                    </Trigger>
+                                                                    <Trigger Property="IsEnabled" Value="False">
+                                                                        <Setter Property="Opacity" Value="0.55" />
+                                                                    </Trigger>
+                                                                </ControlTemplate.Triggers>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Style>
+ </UserControl.Resources>
+ <TabControl>
+  <TabItem Header="General"><StackPanel Width="760" HorizontalAlignment="Left"><TextBlock Text="Stats" Style="{StaticResource OsirisSettingsTitleStyle}"/><TextBlock Text="Choose Global or Per Game under Insights to manage text insights." Style="{StaticResource OsirisSettingsDescriptionStyle}"/></StackPanel></TabItem>
+  <TabItem Header="Global"><StackPanel Width="760" HorizontalAlignment="Left">
+   <Grid Height="54"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><CheckBox Style="{StaticResource OsirisSettingsToggleStyle}" IsChecked="{Binding Settings.GlobalEnabled, Mode=TwoWay}"/><TextBlock Grid.Column="1" Text="Global Insights" VerticalAlignment="Center" Style="{StaticResource OsirisSettingsTitleStyle}"/></Grid><TextBlock Text="Manage the insights shown beneath Home’s welcome message." Style="{StaticResource OsirisSettingsDescriptionStyle}"/>
+   <Grid Height="54"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><CheckBox Style="{StaticResource OsirisSettingsToggleStyle}" IsChecked="{Binding Settings.GlobalLongestSession, Mode=TwoWay}"/><TextBlock Grid.Column="1" Text="Longest gaming session" Style="{StaticResource OsirisSettingsLabelStyle}"/></Grid>
+   <Grid Height="54"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><CheckBox Style="{StaticResource OsirisSettingsToggleStyle}" IsChecked="{Binding Settings.GlobalMostPlayed, Mode=TwoWay}"/><TextBlock Grid.Column="1" Text="Most played game" Style="{StaticResource OsirisSettingsLabelStyle}"/></Grid>
+   <Grid Height="54"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><CheckBox Style="{StaticResource OsirisSettingsToggleStyle}" IsChecked="{Binding Settings.GlobalAnniversaries, Mode=TwoWay}"/><TextBlock Grid.Column="1" Text="Game anniversaries" Style="{StaticResource OsirisSettingsLabelStyle}"/></Grid>
+   <Grid Height="54"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><CheckBox Style="{StaticResource OsirisSettingsToggleStyle}" IsChecked="{Binding Settings.GlobalOldestGame, Mode=TwoWay}"/><TextBlock Grid.Column="1" Text="Oldest game" Style="{StaticResource OsirisSettingsLabelStyle}"/></Grid>
+   <Grid Height="54"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><CheckBox Style="{StaticResource OsirisSettingsToggleStyle}" IsChecked="{Binding Settings.GlobalTotalPlaytime, Mode=TwoWay}"/><TextBlock Grid.Column="1" Text="Total played time" Style="{StaticResource OsirisSettingsLabelStyle}"/></Grid>
+   <Grid Height="54"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><CheckBox Style="{StaticResource OsirisSettingsToggleStyle}" IsChecked="{Binding Settings.GlobalUnplayedReminder, Mode=TwoWay}"/><TextBlock Grid.Column="1" Text="Not played reminder" Style="{StaticResource OsirisSettingsLabelStyle}"/></Grid>
+   <Grid Height="54"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><CheckBox Style="{StaticResource OsirisSettingsToggleStyle}" IsChecked="{Binding Settings.GlobalFirstPlayedBirthday, Mode=TwoWay}"/><TextBlock Grid.Column="1" Text="First played birthdays" Style="{StaticResource OsirisSettingsLabelStyle}"/></Grid>
+  </StackPanel></TabItem>
+  <TabItem Header="Per Game"><StackPanel Width="760" HorizontalAlignment="Left">
+   <Grid Height="54"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><CheckBox Style="{StaticResource OsirisSettingsToggleStyle}" IsChecked="{Binding Settings.PerGameEnabled, Mode=TwoWay}"/><TextBlock Grid.Column="1" Text="Per Game Insights" VerticalAlignment="Center" Style="{StaticResource OsirisSettingsTitleStyle}"/></Grid><TextBlock Text="Manage the insight rows shown in Game Details. Each game’s Stats Insights switch also applies." Style="{StaticResource OsirisSettingsDescriptionStyle}"/>
+   <Grid Height="54"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><CheckBox Style="{StaticResource OsirisSettingsToggleStyle}" IsChecked="{Binding Settings.PerGameLongestSession, Mode=TwoWay}"/><TextBlock Grid.Column="1" Text="Longest session" Style="{StaticResource OsirisSettingsLabelStyle}"/></Grid>
+   <Grid Height="54"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><CheckBox Style="{StaticResource OsirisSettingsToggleStyle}" IsChecked="{Binding Settings.PerGameAge, Mode=TwoWay}"/><TextBlock Grid.Column="1" Text="Game age" Style="{StaticResource OsirisSettingsLabelStyle}"/></Grid>
+  </StackPanel></TabItem>
+ </TabControl>
+</UserControl>

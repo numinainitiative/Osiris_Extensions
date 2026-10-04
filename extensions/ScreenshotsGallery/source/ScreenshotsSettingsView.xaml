@@ -1,0 +1,17 @@
+<UserControl x:Class="Osiris.Extensions.ScreenshotsGallery.ScreenshotsSettingsView"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <TabControl><TabItem Header="General">
+  <StackPanel Width="760" HorizontalAlignment="Left" VerticalAlignment="Top">
+   <Grid Height="54">
+    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+    <TextBlock Text="Choose expanded experience" Foreground="#F0F1F7" FontSize="15" FontWeight="Normal" Margin="0,0,18,0" VerticalAlignment="Center"/>
+    <ComboBox Grid.Column="1" Width="190" Height="38" VerticalAlignment="Center" SelectedValuePath="Tag"
+      SelectedValue="{Binding Settings.ExpandedExperience, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+     <ComboBoxItem Content="Cinematic" Tag="Cinematic"/>
+     <ComboBoxItem Content="Full screen" Tag="FullScreen"/>
+    </ComboBox>
+   </Grid>
+  </StackPanel>
+ </TabItem></TabControl>
+</UserControl>

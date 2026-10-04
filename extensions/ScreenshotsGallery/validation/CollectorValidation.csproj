@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+  <PropertyGroup>
+    <TargetFramework>net462</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <OutputType>Exe</OutputType>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="PresentationValidation.cs" />
+    <Compile Include="..\source\ScreenshotCollector.cs" Link="ScreenshotCollector.cs" />
+  </ItemGroup>
+</Project>

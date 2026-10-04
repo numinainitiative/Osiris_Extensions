@@ -22,6 +22,11 @@ namespace Osiris.Extensions.Stats
         private const double FixedHeaderHeight = 76;
         private const string NativeTopPanelTypeName =
             "Playnite.DesktopApp.Controls.Views.TopPanel";
+        internal static Func<Game, ulong> CreateStatsPlaytimeResolver()
+        {
+            var bridge = ExophaseStatsBridge.TryCreate();
+            return game => bridge?.GetStatsPlaytime(game) ?? game.Playtime;
+        }
         private const string ExophasePluginTypeName =
             "Osiris.Extensions.Exophase.ExophasePlugin";
         private const string HowLongToBeatPluginTypeName =
