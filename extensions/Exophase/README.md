@@ -6,7 +6,7 @@ profile with matching games in Osiris.
 
 ## Current prototype
 
-Version 0.2.4 provides:
+Version 0.2.7 provides:
 
 - Account, General, and Danger Zone settings pages.
 - A first-party Osiris embedded-browser sign-in flow for Exophase.
@@ -77,3 +77,13 @@ source of truth for the game's current library platform.
 Platform vector marks are sourced from the CC0-licensed Simple Icons project;
 see `THIRD-PARTY-NOTICES.md`. Brand marks identify their respective platforms
 and do not imply endorsement.
+
+The read-only `GetUnlockedAchievementsForOsiris(Guid, CancellationToken)` bridge
+supplies verified individual earned awards for local games' saved linked editions
+to Trophies. It uses the extension's own website session and request fallback,
+validates game/profile identities before returning, and reports partial platform
+failures. Completion totals never generate individual unlocks. Steam and Xbox
+integrated-library achievements remain outside this bridge.
+The achievement player ID comes from the linked platform URL fragment, not the
+overall profile ID used for the games library endpoint. These identities are
+kept separate and revalidated before returning the result.

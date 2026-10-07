@@ -36,6 +36,18 @@ public class XboxLibrary : LibraryPluginBase<XboxLibrarySettingsViewModel>
 		return base.SettingsViewModel;
 	}
 
+	// Read-only achievement bridge. Authentication remains owned by Xbox Library.
+	public async System.Threading.Tasks.Task<string> GetAchievementsForOsiris(Guid gameId, System.Threading.CancellationToken token)
+	{
+		var game=PlayniteApi.Database.Games.Get(gameId);
+		if (game==null || game.PluginId!=Id || string.IsNullOrWhiteSpace(game.GameId)) throw new InvalidDataException("Select an Xbox library game.");
+		var client=new XboxAccountClient(this);
+		var title=GetAppDataCache().SingleOrDefault(t=>t.pfn==game.GameId) ?? await client.GetTitleInfo(game.GameId,token);
+		token.ThrowIfCancellationRequested();
+		if (title==null || title.pfn!=game.GameId || !uint.TryParse(title.titleId,out _)) throw new InvalidDataException("Xbox could not resolve this game's title ID.");
+		return await client.GetAchievementsForOsiris(title.titleId,token);
+	}
+
 	internal GameMetadata GetGameMetadataFromTitle(TitleHistoryResponse.Title title)
 	{
 		bool containsPC;

@@ -1,0 +1,6 @@
+<Viewbox xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" Width="256" Height="256">
+ <Grid Width="64" Height="64">
+  <Border CornerRadius="10"><Border.Background><LinearGradientBrush StartPoint="0,1" EndPoint="1,0"><GradientStop Color="#5C3820" Offset="0"/><GradientStop Color="#826127" Offset="1"/></LinearGradientBrush></Border.Background></Border>
+  <Path Stroke="White" StrokeThickness="3" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="M 23,15 L 41,15 L 41,28 C 41,39 23,39 23,28 Z M 23,19 L 16,19 L 16,25 C 16,31 20,33 24,33 M 41,19 L 48,19 L 48,25 C 48,31 44,33 40,33 M 32,37 L 32,46 M 24,49 L 40,49 M 27,46 L 37,46"/>
+ </Grid>
+</Viewbox>

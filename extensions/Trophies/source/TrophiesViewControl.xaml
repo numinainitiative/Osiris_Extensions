@@ -1,0 +1,9 @@
+<controls:PluginUserControl x:Class="Osiris.Extensions.Trophies.TrophiesViewControl" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:controls="clr-namespace:Playnite.SDK.Controls;assembly=Playnite.SDK" HorizontalContentAlignment="Stretch">
+ <controls:PluginUserControl.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries><ResourceDictionary Source="AchievementStyles.xaml"/></ResourceDictionary.MergedDictionaries></ResourceDictionary></controls:PluginUserControl.Resources>
+ <StackPanel HorizontalAlignment="Stretch">
+  <ItemsControl x:Name="TrophyList" Style="{StaticResource AchievementList}"/>
+  <Border Background="#0B0B0B" CornerRadius="0,0,12,12" SnapsToDevicePixels="True" UseLayoutRounding="True">
+   <Button x:Name="ViewAllButton" Style="{StaticResource AchievementViewAll}" Click="ViewAllClick"/>
+  </Border>
+ </StackPanel>
+</controls:PluginUserControl>

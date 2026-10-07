@@ -32,6 +32,30 @@ internal static class Program
 
     private static void RunChecks()
     {
+        var achievementPage = new ExophasePage { Awards = new List<ExophaseAward> {
+            new ExophaseAward { Id = "10", Name = "One" }, new ExophaseAward { Id = "11", Name = "Two" } } };
+        ExophaseAchievementResponse.Apply(achievementPage, JObject.Parse("{\"success\":true,\"list\":[{\"awardid\":\"11\",\"timestamp\":1700000001}]}"));
+        Expect(achievementPage.Awards[1].UnlockedUtc.HasValue && !achievementPage.Awards[0].UnlockedUtc.HasValue, "Provider maps individual verified IDs and dates, never totals.");
+        foreach (var invalid in new[] { "{\"success\":false,\"list\":[]}", "{\"success\":true,\"list\":[{\"awardid\":\"unknown\",\"timestamp\":1700000001}]}", "{\"success\":true,\"list\":null}" })
+        {
+            var rejected = false;
+            try { ExophaseAchievementResponse.Apply(achievementPage, JObject.Parse(invalid)); }
+            catch (InvalidDataException) { rejected = true; }
+            Expect(rejected && achievementPage.Awards[1].UnlockedUtc.HasValue, "Invalid platform response cannot alter previously verified records.");
+        }
+        ExophaseAchievementResponse.Apply(achievementPage, JObject.Parse("{\"success\":true,\"list\":[]}"));
+        Expect(achievementPage.Awards.All(a => !a.UnlockedUtc.HasValue), "Verified empty platform is a valid response.");
+        Expect(typeof(ExophasePlugin).GetMethod("GetUnlockedAchievementsForOsiris") != null, "Exophase exposes its achievement provider bridge.");
+        var bridgeGame = new Game { Name = "Fixture Game", PluginId = Guid.Empty };
+        var bridgeSettings = JObject.Parse("{\"enabled\":true,\"matchedTitles\":[\"Fixture Game\"]}");
+        var bridgeSnapshot = JObject.Parse("{\"PlayerProfileId\":\"123\",\"Games\":[{\"Title\":\"Fixture Game\",\"RemoteGameId\":456}]}");
+        var bridgeRaw = JObject.Parse("{\"playerProfileId\":\"123\",\"pages\":[{\"games\":[{\"master_id\":456,\"meta\":{\"title\":\"Fixture Game\",\"endpoint_awards\":\"https://www.exophase.com/game/fixture-game-psn/trophies/#789\"}}]}]}");
+        var linkedAwardSource = ExophaseAutoMatch.ResolveAll(bridgeGame, bridgeSettings, bridgeSnapshot, bridgeRaw).Single();
+        Expect(linkedAwardSource.ProfileId == "123" && linkedAwardSource.AwardPlayerId == "789", "Platform achievement player ID remains distinct from profile/library ID.");
+        var missingPlatformPlayerRejected = false;
+        try { ExophaseAutoMatch.ResolveAll(bridgeGame, bridgeSettings, bridgeSnapshot, JObject.Parse(bridgeRaw.ToString().Replace("#789", ""))); }
+        catch (InvalidDataException) { missingPlatformPlayerRejected = true; }
+        Expect(missingPlatformPlayerRejected, "Missing platform player ID must never fall back to unrelated profile ID.");
         var settings = new ExophaseSettings();
         Expect(!settings.ConnectAccount, "Account connection should require an explicit opt-in.");
         Expect(settings.ImportAchievements && settings.ImportPlayTime && settings.ImportPlatforms,

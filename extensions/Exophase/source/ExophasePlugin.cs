@@ -12,7 +12,7 @@ using Playnite.SDK.Plugins;
 
 namespace Osiris.Extensions.Exophase
 {
-    public sealed class ExophasePlugin : GenericPlugin
+    public sealed partial class ExophasePlugin : GenericPlugin
     {
         private const string ExtensionSource = "Exophase";
         private const string ActivityControlName = "ActivityViewControl";

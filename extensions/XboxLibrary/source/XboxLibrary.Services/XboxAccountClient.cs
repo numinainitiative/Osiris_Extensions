@@ -18,7 +18,7 @@ using XboxLibrary.Models;
 
 namespace XboxLibrary.Services;
 
-public class XboxAccountClient
+public partial class XboxAccountClient
 {
 	private static readonly ILogger logger = LogManager.GetLogger();
 
@@ -273,7 +273,9 @@ public class XboxAccountClient
 		return Serialization.FromJson<UserStatsResponse>(await obj2.Content.ReadAsStringAsync())?.statlistscollection?.FirstOrDefault()?.stats ?? new List<UserStatsResponse.Stats>();
 	}
 
-	public async Task<TitleHistoryResponse.Title> GetTitleInfo(string pfn)
+	public Task<TitleHistoryResponse.Title> GetTitleInfo(string pfn) => GetTitleInfo(pfn, System.Threading.CancellationToken.None);
+
+	public async Task<TitleHistoryResponse.Title> GetTitleInfo(string pfn, System.Threading.CancellationToken token)
 	{
 		AuthorizationData savedXstsTokens = GetSavedXstsTokens();
 		if (savedXstsTokens == null)
@@ -293,7 +295,7 @@ public class XboxAccountClient
 				new List<string>()
 			}
 		};
-		HttpResponseMessage httpResponseMessage = await client.PostAsync("https://titlehub.xboxlive.com/titles/batch/decoration/detail", new StringContent(Serialization.ToJson(obj), Encoding.UTF8, "application/json"));
+		HttpResponseMessage httpResponseMessage = await client.PostAsync("https://titlehub.xboxlive.com/titles/batch/decoration/detail", new StringContent(Serialization.ToJson(obj), Encoding.UTF8, "application/json"),token);
 		if (httpResponseMessage.StatusCode == HttpStatusCode.NotFound)
 		{
 			throw new Exception("Title info not available.");

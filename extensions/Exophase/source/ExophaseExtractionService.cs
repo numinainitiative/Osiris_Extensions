@@ -176,7 +176,7 @@ namespace Osiris.Extensions.Exophase
                 "Osiris could not find this profile's Exophase player ID. Enter the username or full public profile URL and try again.");
         }
 
-        private async Task<JObject> DownloadJsonAsync(
+        internal async Task<JObject> DownloadJsonAsync(
             IWebView browser,
             string url,
             CancellationToken cancellationToken)

@@ -24,6 +24,12 @@ are preserved outside Git and are not treated as editable source. Compiled
 
 HowLongToBeat is maintained as an original, clean-room Osiris extension.
 
+Trophies 0.1.0 is an original MIT-licensed extension in `extensions/Trophies`,
+requiring Osiris Beta 0.0.51 for Game Details and Edit Game integration. It imports
+Steam catalogues, synchronises native Steam/Xbox unlocks and offers manual local
+Exophase sync using saved editions. Local in-game detection and notifications
+are not included. See `extensions/Trophies/README.md` for configuration and limits.
+
 ## Release gate
 
 Before publishing an extension:
