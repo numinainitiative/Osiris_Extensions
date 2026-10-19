@@ -4,7 +4,7 @@ Game Gallery is a standalone Osiris enhancement that displays Steam screenshots,
 trailers, and local gallery media on the game-details page.
 
 - Extension ID: `GameGallery_8e77fe31-5e62-41e2-8fa2-64844cfd5b6b`
-- Version: `2.0.4`
+- Version: `2.0.5`
 - Module: `GameGallery.dll`
 - Install folder: `Data/Extensions/Extras/GameGallery_8e77fe31-5e62-41e2-8fa2-64844cfd5b6b`
 - Private data folder: `Data/ExtensionsData/Extras/GameGallery_8e77fe31-5e62-41e2-8fa2-64844cfd5b6b`
@@ -13,8 +13,8 @@ The Gallery card and the Gallery section in Edit Game are supplied only when
 this extension is installed and enabled. Disabling or uninstalling it removes
 those surfaces without changing the user's game media or other Osiris data.
 The card header displays only its gallery title, without a screenshot count.
-The extension icon uses the user's supplied Game Gallery PNG unchanged,
-including its coloured background.
+The extension icon uses the owner's Photoshop-created symbol as a white alpha
+mask over the purple gradient tile. See `ICON-PROVENANCE.md` and `Icon.xaml`.
 
 Version 2.0.3 retains the restored extension settings surface and stable
 Osiris presentation fields used to build the

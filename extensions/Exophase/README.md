@@ -4,9 +4,9 @@ Exophase is an Osiris Extras extension intended to unify trophies,
 achievements, play time, and platform associations from a user's Exophase
 profile with matching games in Osiris.
 
-## Current prototype
+## Current release
 
-Version 0.2.7 provides:
+Version 0.2.8 provides:
 
 - Account, General, and Danger Zone settings pages.
 - A first-party Osiris embedded-browser sign-in flow for Exophase.
@@ -84,9 +84,9 @@ describe the distribution of playtime, not achievement progress.
 ## First synchronization
 
 1. Enable account connection and sign in to Exophase.
-2. Optionally enter an Exophase username or full profile URL. Leaving it blank
-   asks Osiris to discover the profile from the signed-in account.
-3. Open General and choose **Synchronise now**.
+2. Osiris discovers the profile from the signed-in account. Existing saved
+   profile overrides remain compatible; the profile-entry control is hidden.
+3. Open Account and choose **Update Database** under Synchronisation.
 
 Profile visibility and connected-platform privacy settings determine which
 records Exophase returns. The game-details card and optional display total read

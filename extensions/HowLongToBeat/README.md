@@ -44,7 +44,7 @@ available when the Osiris theme navigation bridge is absent.
 
 See the shared [navigation regression checks](../../validation/ExtensionGameNavigation/README.md).
 
-## Development page footer (unreleased)
+## Page footer (1.2.5)
 
 The global page has an Exophase-style fixed bottom legend: solid white for time
 played, vertical stripes for Main Story, small diagonal stripes for Main + Extras,
@@ -60,7 +60,7 @@ does not fetch data or change game settings.
 ## Identity
 
 - ID: `HowLongToBeat_fba3e63d-d1a1-4b9d-91c6-091a1220377d`
-- Version: `1.2.4`
+- Version: `1.2.5`
 - Author: `Osiris`
 - Type: `GenericPlugin`
 - Category: `Extras`

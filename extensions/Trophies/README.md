@@ -1,11 +1,11 @@
-# Trophies 0.1.0
+# Trophies 0.1.1
 
 Original MIT-licensed Numina Initiative extension. Requires Osiris Beta 0.0.51
 or newer for its Game Details card and Game Edit integration.
 
 ## Setup
 
-Development follow-up: exposes a read-only earned-trophy snapshot to Stats,
+Version 0.1.1 exposes a read-only earned-trophy snapshot to Stats,
 using the same local/integrated source filtering and cached icons as Game Details.
 Stats reads this bridge only when Trophies is loaded; it does not initiate sync.
 

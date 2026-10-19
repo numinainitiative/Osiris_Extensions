@@ -29,8 +29,8 @@ existing installations and metadata matches remain compatible.
 ## Build and package
 
 Run `build.ps1` to compile the extension. Run `package.ps1` to create
-`IgnMetadata_1.0.1.pext` and its SHA-256 manifest beneath the ignored
-`artifacts/IgnMetadata/1.0.1` directory.
+`IgnMetadata_1.0.2.pext` and its SHA-256 manifest beneath the ignored
+`artifacts/IgnMetadata/1.0.2` directory.
 
 Every generated package includes Jeshibu's MIT license. Compiled packages are
 published as GitHub Release assets, never committed to normal Git history.

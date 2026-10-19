@@ -199,7 +199,7 @@ It is the user's supplied Stats PNG, including its coloured background.
 
 Stats is distributed through the public Osiris extension catalog.
 
-## Development follow-up: trophy statistics
+## Trophy statistics (0.1.4)
 
 Weekly Stats no longer includes New Games. Last Trophies Earned is double-width and
 shows only the three latest earned trophies, centred, across visible
