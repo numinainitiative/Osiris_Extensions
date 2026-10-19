@@ -11,6 +11,14 @@ existing installations and metadata matches remain compatible.
 
 ## Osiris changes
 
+- Local hotfix (2026-10-09): game-detail requests now use an explicit minimal
+  GraphQL query instead of IGN's obsolete persisted website query referencing
+  the removed `hrefLangs` field. Missing details/gallery objects and null error
+  arrays no longer cause null-reference failures. Existing metadata and provider
+  identity are preserved. Run `dotnet run --project validation/Ign.Validation.csproj
+  -c Release -- --live` for fixture checks plus read-only live metadata checks.
+  The inherited AngleSharp 0.9.9 dependency still produces its existing NU1902
+  advisory; upgrading that parser is a separate compatibility task.
 - Uses the concise user-facing name **IGN Metadata**.
 - Uses the Osiris `1.0.1` release version while retaining the upstream assembly,
   namespace, extension ID, and metadata behavior.

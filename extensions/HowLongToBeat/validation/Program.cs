@@ -280,7 +280,7 @@ internal static class Program
             "The HLTB page should format its persisted database-update timestamp beside the action.");
         Expect(globalPageView.Contains("Margin=\"52,23,52,0\"") &&
                globalPageView.Contains("<RowDefinition Height=\"84\" />") &&
-               globalPageView.Contains("Margin=\"28,0,28,28\"") &&
+               globalPageView.Contains("Margin=\"28,0\"") &&
                globalPageView.Contains("CornerRadius=\"0\"") &&
                globalPageView.Contains("CanUserSortColumns=\"False\"") &&
                headerGutterFill != null &&
@@ -299,11 +299,98 @@ internal static class Program
             10L * 3600,
             20L * 3600,
             30L * 3600);
+        var tableContainer = globalView.FindName("GamesTableContainer") as Border;
+        var tableLegend = globalView.FindName("TableLegendBar") as Grid;
+        var progressLegend = globalView.FindName("ProgressLegend") as WrapPanel;
+        var gameDataSummary = globalView.FindName("GameDataSummary") as WrapPanel;
+        var fetchedCount = globalView.FindName("FetchedGamesCountText") as TextBlock;
+        var missingCount = globalView.FindName("NoCompletionDataCountText") as TextBlock;
+        var disabledCount = globalView.FindName("DisabledGamesCountText") as TextBlock;
+        Expect(tableContainer != null && tableLegend != null &&
+               Grid.GetRow(tableLegend) == 2 && ReferenceEquals(tableContainer.Parent, tableLegend.Parent) &&
+               tableLegend.MinHeight == 62 && tableLegend.Margin == new Thickness(52, 0, 52, 18) &&
+               TextBlock.GetFontFamily(tableLegend).Source == "Rajdhani" &&
+               TextBlock.GetFontSize(tableLegend) == 17 &&
+               TextBlock.GetFontWeight(tableLegend) == FontWeights.SemiBold,
+            "The fixed legend should match Exophase typography and footer geometry outside the scrolling table.");
+        Expect(progressLegend != null && gameDataSummary != null &&
+               Grid.GetColumn(progressLegend) == 0 && Grid.GetColumn(gameDataSummary) == 1 &&
+               fetchedCount.Text == "0 Games with Data" &&
+               missingCount.Text == "0 Games without Data" &&
+               disabledCount.Text == "0 Games manually disabled",
+            "HLTB should start with its own progress legend and zeroed library data counters.");
+        var playedSample = globalView.FindName("PlayedLegendSample") as HowLongToBeatLegendSample;
+        var storySample = globalView.FindName("MainStoryLegendSample") as HowLongToBeatLegendSample;
+        var extrasSample = globalView.FindName("MainExtraLegendSample") as HowLongToBeatLegendSample;
+        var completionistSample = globalView.FindName("CompletionistLegendSample") as HowLongToBeatLegendSample;
+        Expect(playedSample?.Kind == HowLongToBeatLegendKind.TimePlayed &&
+               storySample?.Kind == HowLongToBeatLegendKind.MainStory &&
+               extrasSample?.Kind == HowLongToBeatLegendKind.MainExtra &&
+               completionistSample?.Kind == HowLongToBeatLegendKind.Completionist &&
+               progressLegend.Children.Count == 4 &&
+               !globalPageView.Contains("Trophy progress") && !globalPageView.Contains("All trophies achieved"),
+            "Legend should expose time played and all three named play-style textures, not trophy completion.");
+        var legendDrawings = new List<System.Windows.Media.DrawingGroup>();
+        foreach (HowLongToBeatLegendKind kind in Enum.GetValues(typeof(HowLongToBeatLegendKind)))
+        {
+            var visual = new System.Windows.Media.DrawingVisual();
+            using (var context = visual.RenderOpen())
+                HowLongToBeatTimeline.DrawLegendSample(context, new Rect(0, 0, 48, 14), kind);
+            legendDrawings.Add(visual.Drawing);
+        }
+        var playedDrawing = legendDrawings[0].Children.OfType<System.Windows.Media.GeometryDrawing>().Single();
+        var storyBrush = legendDrawings[1].Children.OfType<System.Windows.Media.GeometryDrawing>().Single().Brush as System.Windows.Media.DrawingBrush;
+        var extrasBrush = legendDrawings[2].Children.OfType<System.Windows.Media.GeometryDrawing>().Single().Brush as System.Windows.Media.DrawingBrush;
+        Expect((playedDrawing.Brush as System.Windows.Media.SolidColorBrush)?.Color == System.Windows.Media.Color.FromRgb(244, 245, 248) &&
+               storyBrush?.Viewport == new Rect(0, 0, 8, 8) && extrasBrush?.Viewport == new Rect(0, 0, 10, 10) &&
+               storyBrush.IsFrozen && extrasBrush.IsFrozen &&
+               !ReferenceEquals(storyBrush, extrasBrush),
+            "Legend should share the timeline's solid white fill, vertical story texture and small diagonal extras texture.");
+        var completionistStripes = legendDrawings[3].Children.OfType<System.Windows.Media.DrawingGroup>().Single();
+        Expect(completionistStripes.ClipGeometry.Bounds == new Rect(0, 0, 48, 14) &&
+               completionistStripes.Children.OfType<System.Windows.Media.GeometryDrawing>().Count() > 2 &&
+               completionistStripes.Children.OfType<System.Windows.Media.GeometryDrawing>().All(drawing => drawing.Pen?.Thickness == 4),
+            "Completionist legend should reuse the actual clipped large diagonal stripes, not the Extras texture.");
+        var missingRow = HowLongToBeatGameRow.WithoutTimes(
+            new Playnite.SDK.Models.Game(), null, null, CompletionTimeProfiles.Average, "Not fetched");
+        var unavailableRow = HowLongToBeatGameRow.WithoutTimes(
+            new Playnite.SDK.Models.Game(), null, null, CompletionTimeProfiles.Average, "Average estimates unavailable");
+        var disabledRow = HowLongToBeatGameRow.WithoutTimes(
+            new Playnite.SDK.Models.Game(), null, null, CompletionTimeProfiles.Average,
+            "Disabled for this game", HowLongToBeatGameDataState.Disabled);
+        var summaryRows = new[] { bindingRow, missingRow, unavailableRow, disabledRow, null };
+        var summary = HowLongToBeatGlobalPageControl.CalculateGameDataSummary(summaryRows);
+        Expect(summary.Fetched == 1 && summary.NoData == 2 && summary.Disabled == 1 &&
+               bindingRow.DataState == HowLongToBeatGameDataState.Fetched &&
+               !disabledRow.HasTimes,
+            "Library counts should distinguish usable estimates, unavailable data and explicitly disabled games without parsing status labels.");
+        var emptySummary = HowLongToBeatGlobalPageControl.CalculateGameDataSummary(null);
+        Expect(emptySummary.Fetched == 0 && emptySummary.NoData == 0 && emptySummary.Disabled == 0,
+            "Missing library snapshots should produce zero counts safely.");
+        typeof(HowLongToBeatGlobalPageControl).GetMethod("UpdateGameDataSummary",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            .Invoke(globalView, new object[] { summaryRows });
+        Expect(fetchedCount.Text == "1 Games with Data" && missingCount.Text == "2 Games without Data" &&
+               disabledCount.Text.StartsWith("1 Games") && globalPageCode.Contains("UpdateGameDataSummary(rows);"),
+            "Reloaded data summaries should update all three visible footer labels from the full library snapshot.");
         globalGamesGrid.ItemsSource = new[] { bindingRow };
         globalView.Measure(new Size(1200, 700));
         globalView.Arrange(new Rect(0, 0, 1200, 700));
         globalView.UpdateLayout();
         Dispatcher.CurrentDispatcher.Invoke(DispatcherPriority.DataBind, new Action(() => { }));
+        Expect(tableLegend.ActualHeight >= 62 && globalGamesGrid.ActualHeight > 0 &&
+               tableContainer.TranslatePoint(new Point(0, tableContainer.ActualHeight), globalView).Y <=
+               tableLegend.TranslatePoint(new Point(0, 0), globalView).Y,
+            "The table viewport should end above its always-visible footer without overlapping rows.");
+        globalView.Measure(new Size(900, 700));
+        globalView.Arrange(new Rect(0, 0, 900, 700));
+        globalView.UpdateLayout();
+        Expect(progressLegend.TranslatePoint(new Point(progressLegend.ActualWidth, 0), tableLegend).X <=
+                   gameDataSummary.TranslatePoint(new Point(0, 0), tableLegend).X &&
+               gameDataSummary.ActualHeight <= tableLegend.ActualHeight &&
+               gameDataSummary.TranslatePoint(new Point(gameDataSummary.ActualWidth, 0), tableLegend).X <=
+                   tableLegend.ActualWidth + 0.01,
+            "Footer counters should wrap on narrower pages without colliding with the progress samples or the right edge.");
         Expect(globalGamesGrid.Items.Count == 1 &&
                bindingRow.PlayedTimeText == "1 Hour" &&
                bindingRow.FallbackIconPath == "osiris.png" &&
@@ -328,6 +415,9 @@ internal static class Program
         validationRows.Add(alphaRow);
         validationRows.Add(betaRow);
         validationRows.Add(gammaRow);
+        typeof(HowLongToBeatGlobalPageControl).GetMethod("UpdateGameDataSummary",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            .Invoke(globalView, new object[] { validationRows });
         globalGamesGrid.ItemsSource = globalView.GamesView;
         sortByCombo.SelectedIndex = 1;
         var timePlayedOrder = globalView.GamesView.Cast<HowLongToBeatGameRow>().ToList();
@@ -344,6 +434,9 @@ internal static class Program
         Expect(playedRows.SequenceEqual(new[] { betaRow, gammaRow }) &&
                playedRows.All(row => row.PlayedSeconds > 0),
             "Show only played games should remove every zero-playtime row without changing stored data.");
+        Expect(fetchedCount.Text.StartsWith("3 Games") && missingCount.Text == "0 Games without Data" &&
+               disabledCount.Text.StartsWith("0 Games"),
+            "Sorting and played-only filtering should retain whole-library footer counts.");
         showOnlyPlayedToggle.IsChecked = false;
         Expect(globalPageView.Contains("PlayedSeconds=\"{Binding PlayedSeconds}\"") &&
                globalPageView.Contains("MainStorySeconds=\"{Binding MainStorySeconds}\"") &&

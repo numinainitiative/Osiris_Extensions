@@ -326,15 +326,15 @@ internal static class Program
                disabledGamesCountText != null &&
                string.Equals(
                    fetchedGamesCountText.Text,
-                   "0 Games with Exophase data",
+                   "0 Games with Data",
                    StringComparison.Ordinal) &&
                string.Equals(
                    noExophaseDataCountText.Text,
-                   "0 With no Exophase data",
+                   "0 Games without Data",
                    StringComparison.Ordinal) &&
                string.Equals(
                    disabledGamesCountText.Text,
-                   "0 Games with Exophase manually disabled",
+                   "0 Games manually disabled",
                    StringComparison.Ordinal) &&
                fetchedGamesCountBrush != null &&
                fetchedGamesCountBrush.Color == System.Windows.Media.Color.FromRgb(119, 122, 130) &&
@@ -354,9 +354,9 @@ internal static class Program
                !globalPageCode.Contains("CalculateGamesTableHeight") &&
                globalPageView.Contains("Text=\"Trophy progress\"") &&
                globalPageView.Contains("Text=\"All trophies achieved\"") &&
-               globalPageView.Contains("Text=\"0 Games with Exophase data\"") &&
-               globalPageView.Contains("Text=\"0 With no Exophase data\"") &&
-               globalPageView.Contains("Text=\"0 Games with Exophase manually disabled\""),
+               globalPageView.Contains("Text=\"0 Games with Data\"") &&
+               globalPageView.Contains("Text=\"0 Games without Data\"") &&
+               globalPageView.Contains("Text=\"0 Games manually disabled\""),
             "The Exophase page should remove global playtime statistics and fill the viewport with the games table while reserving scrolling for the table itself.");
         var platformRatios = ExophasePlatformTimeline.CalculateSegmentRatios(
             new ulong[] { 3600, 7200, 3600 });
@@ -377,7 +377,7 @@ internal static class Program
                platformTimelineCode.Contains("track.Right + TrophyOutlineOffset") &&
                platformTimelineCode.Contains("if (ratio >= 1d)") &&
                platformTimelineCode.Contains("CompletedTrophyProgressPen") &&
-               platformTimelineCode.Contains("TrophyProgressRatio >= 1d") &&
+               !platformTimelineCode.Contains("TrophyProgressRatio >= 1d") &&
                !platformTimelineCode.Contains("CompletedTrophyGlowBrush") &&
                trophyRows[1].IsTrophyComplete &&
                !trophyRows[0].IsTrophyComplete,
@@ -393,6 +393,38 @@ internal static class Program
                platformTimelineCode.Contains("PushOpacityMask(OsirisLogoMaskBrush)") &&
                globalPageCode.Contains("timeline.TotalPlaytimeSeconds"),
             "Platform labels should show a percentage and reuse the card's monochrome platform marks inside brand-coloured tags.");
+        var purple = System.Windows.Media.Color.FromRgb(152, 116, 194);
+        var trophyStyles = File.ReadAllText(Path.Combine(extensionRoot, "..", "Trophies", "source", "AchievementStyles.xaml"));
+        Expect((globalView.Resources["CompletedTrophyBrush"] as System.Windows.Media.SolidColorBrush)?.Color == purple &&
+               trophyStyles.Contains("Property=\"BorderBrush\" Value=\"#9874C2\"") &&
+               !globalPageView.Contains("#FFD34E"),
+            "Completed trophy counts, icons and footer legend should use the rarest trophy's purple accent, with no yellow remaining.");
+        foreach (var completion in new[] { 0d, 0.5d, 1d })
+        {
+            var timeline = new ExophasePlatformTimeline
+            {
+                TrophyProgressRatio = completion,
+                Segments = new[] { new ExophaseTimelineSegment { Platform = "PS4", PlaytimeSeconds = 3600 } }
+            };
+            timeline.Measure(new Size(800, 76));
+            timeline.Arrange(new Rect(0, 0, 800, 76));
+            var visual = new System.Windows.Media.DrawingVisual();
+            using (var context = visual.RenderOpen())
+                typeof(ExophasePlatformTimeline).GetMethod("OnRender",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                    .Invoke(timeline, new object[] { context });
+            var drawings = FlattenDrawings(visual.Drawing).ToList();
+            var percentageGlyphs = drawings.OfType<System.Windows.Media.GlyphRunDrawing>()
+                .Where(drawing => Math.Abs(drawing.GlyphRun.FontRenderingEmSize - 14d) < 0.01).ToList();
+            Expect(percentageGlyphs.Count > 0 && percentageGlyphs.All(drawing =>
+                    (drawing.ForegroundBrush as System.Windows.Media.SolidColorBrush)?.Color ==
+                    System.Windows.Media.Color.FromRgb(119, 122, 130)),
+                "Platform playtime percentages must remain neutral at trophy completion " + completion + ".");
+            if (completion == 1d)
+                Expect(drawings.OfType<System.Windows.Media.GeometryDrawing>().Any(drawing =>
+                        (drawing.Pen?.Brush as System.Windows.Media.SolidColorBrush)?.Color == purple),
+                    "The completed trophy progress outline should actually render in purple.");
+        }
         Expect(ExophaseGlobalPageControl.FormatTrophyCount(0, 64) == "0/64" &&
                ExophaseGlobalPageControl.FormatTrophyCount(1, 64) == "1/64" &&
                ExophaseGlobalPageControl.FormatTrophyCount(23, 64) == "23/64" &&
@@ -962,6 +994,15 @@ internal static class Program
         {
             Directory.Delete(temporaryRoot, true);
         }
+    }
+
+    private static IEnumerable<System.Windows.Media.Drawing> FlattenDrawings(System.Windows.Media.Drawing drawing)
+    {
+        yield return drawing;
+        if (drawing is System.Windows.Media.DrawingGroup group)
+            foreach (var child in group.Children)
+                foreach (var descendant in FlattenDrawings(child))
+                    yield return descendant;
     }
 
     private static void Expect(bool condition, string message)

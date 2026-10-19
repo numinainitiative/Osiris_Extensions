@@ -30,7 +30,7 @@ public abstract class GenericMetadataProvider<TSearchResult>(IGameSearchProvider
 
         var searchResult = GetSearchResultGame(args);
         if (searchResult != null)
-            return FoundGame = DataSource.GetDetails(searchResult, searchGame: Options.GameData);
+            return FoundGame = DataSource.GetDetails(searchResult, searchGame: Options.GameData) ?? new GameDetails();
 
         return FoundGame = new GameDetails();
     }

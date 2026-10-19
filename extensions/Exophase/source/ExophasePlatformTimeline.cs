@@ -44,8 +44,6 @@ namespace Osiris.Extensions.Exophase
             Freeze(new SolidColorBrush(Color.FromRgb(240, 241, 247)));
         private static readonly Brush OsirisTagForegroundBrush =
             Freeze(new SolidColorBrush(Color.FromRgb(9, 9, 9)));
-        private static readonly Brush CompletedTrophyBrush =
-            Freeze(new SolidColorBrush(Color.FromRgb(255, 211, 78)));
         private static readonly Brush GenericSegmentBrush =
             Freeze(new SolidColorBrush(Color.FromRgb(49, 141, 180)));
         private static readonly Brush GenericTagBrush =
@@ -57,7 +55,7 @@ namespace Osiris.Extensions.Exophase
         private static readonly Pen TrophyProgressPen = CreateTrophyProgressPen(
             Color.FromRgb(240, 241, 247));
         private static readonly Pen CompletedTrophyProgressPen = CreateTrophyProgressPen(
-            Color.FromRgb(255, 211, 78));
+            Color.FromRgb(152, 116, 194));
         private static readonly Typeface LabelTypeface =
             new Typeface(
                 new FontFamily("Rajdhani"),
@@ -279,9 +277,7 @@ namespace Osiris.Extensions.Exophase
                     PercentageText = CreateText(
                         FormatPercentage(layout.Ratio),
                         14,
-                        TrophyProgressRatio >= 1d
-                            ? CompletedTrophyBrush
-                            : LabelBrush)
+                        LabelBrush)
                 })
                 .ToList();
 

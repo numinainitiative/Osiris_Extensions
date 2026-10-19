@@ -5,11 +5,20 @@ or newer for its Game Details card and Game Edit integration.
 
 ## Setup
 
+Development follow-up: exposes a read-only earned-trophy snapshot to Stats,
+using the same local/integrated source filtering and cached icons as Game Details.
+Stats reads this bridge only when Trophies is loaded; it does not initiate sync.
+
 1. Install Trophies from Extensions after updating Osiris.
 2. In Trophies settings -> Account, enter your Steam Web API key and Save.
 3. In Game Edit -> Extensions -> Trophies, choose a Steam App ID/store URL and
    Fetch catalogue. Verify the imported game name; Save applies the catalogue,
    while Cancel leaves the previous catalogue intact.
+   Steam must expose an achievement schema for that App ID. Some games (including
+   Need for Speed Most Wanted 2012 and Assassin's Creed Brotherhood) have no
+   Steam achievement catalogue, even if another platform has achievements.
+   An empty Steam schema now reports that limitation rather than blaming the API
+   key; failed imports leave existing catalogues and unlocks untouched.
 4. For local games, synchronise your Exophase profile and save the intended
    edition(s) in Game Edit -> Exophase. Press Sync in Trophies to update earned
    trophies immediately. This action is not staged for Edit Game Save/Cancel.

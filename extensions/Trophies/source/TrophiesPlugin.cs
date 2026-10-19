@@ -28,6 +28,16 @@ namespace Osiris.Extensions.Trophies
         }
         public override Control GetGameViewControl(GetGameViewControlArgs args) => args.Name == "TrophiesViewControl" ? new TrophiesViewControl(this) : null;
         public override ISettings GetSettings(bool firstRunSettings) => Settings;
+        // Read-only bridge for Stats. Use the same source-filtered catalogue as Game Details.
+        public string GetEarnedTrophiesForStatsForOsiris(Guid gameId)
+        {
+            var game = PlayniteApi.Database.Games.Get(gameId);
+            var catalogue = game == null ? null : LoadForGame(game);
+            return Playnite.SDK.Data.Serialization.ToJson((catalogue?.Trophies ?? new List<Trophy>())
+                .Where(t => t.UnlockedUtc.HasValue)
+                .Select(t => new { t.Id, t.Name, t.UnlockedUtc, t.GlobalPercent, Icon = t.LocalIcon,
+                    GameName = game.Name }).ToList());
+        }
         public UserControl GetGameEditControlForOsiris(Guid gameId)
         {
             var game = PlayniteApi.Database.Games.Get(gameId);

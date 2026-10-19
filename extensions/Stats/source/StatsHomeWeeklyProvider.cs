@@ -12,23 +12,15 @@ namespace Osiris.Extensions.Stats
 {
     internal sealed class StatsHomeWeeklyProvider
     {
-        private const string ExophasePluginTypeName =
-            "Osiris.Extensions.Exophase.ExophasePlugin";
 
         private static readonly ILogger Logger = LogManager.GetLogger();
         private readonly IPlayniteAPI api;
         private readonly StatsSessionLedger sessionLedger;
-        private readonly string weeklyTrophyPath;
 
         internal StatsHomeWeeklyProvider(IPlayniteAPI api, StatsSessionLedger sessionLedger)
         {
             this.api = api;
             this.sessionLedger = sessionLedger;
-            weeklyTrophyPath = Path.Combine(
-                api.Paths.ConfigurationPath,
-                "Settings",
-                "Osiris",
-                "stats-weekly-trophies.json");
         }
 
         internal string GetSnapshotJson()
@@ -37,7 +29,7 @@ namespace Osiris.Extensions.Stats
             return Serialization.ToJson(snapshot);
         }
 
-        private StatsHomeWeeklySnapshot BuildSnapshot(DateTime now)
+        internal StatsHomeWeeklySnapshot BuildSnapshot(DateTime now)
         {
             var games = (api?.Database?.Games ?? Enumerable.Empty<Game>())
                 .Where(game => game != null && !game.Hidden)
@@ -109,18 +101,13 @@ namespace Osiris.Extensions.Stats
                         game.LastActivity.Value.ToLocalTime().Date >= monday &&
                         game.LastActivity.Value.ToLocalTime() <= now)
                     .Select(game => game.LastActivity.Value.ToLocalTime().Hour));
-            var newGames = games.Count(game =>
-                game.Added.HasValue &&
-                game.Added.Value.ToLocalTime().Date >= monday &&
-                game.Added.Value.ToLocalTime() <= now);
             var gameById = games.ToDictionary(game => game.Id);
             var mostPlayed = weeklySecondsByGame
                 .Where(pair => pair.Value > 0UL && gameById.ContainsKey(pair.Key))
                 .OrderByDescending(pair => pair.Value)
                 .ThenBy(pair => GetGameName(gameById[pair.Key]), StringComparer.CurrentCultureIgnoreCase)
                 .FirstOrDefault();
-            var totalTrophies = ReadTotalTrophies(games);
-            var weeklyTrophies = GetWeeklyTrophyDelta(monday, totalTrophies);
+            var trophyStats = StatsTrophiesSnapshot.Read(api, games);
 
             return new StatsHomeWeeklySnapshot
             {
@@ -143,12 +130,6 @@ namespace Osiris.Extensions.Stats
                     },
                     new StatsHomeWeeklyMetric
                     {
-                        Key = "NewGames",
-                        Label = "NEW GAMES",
-                        Value = newGames.ToString("N0", CultureInfo.CurrentCulture)
-                    },
-                    new StatsHomeWeeklyMetric
-                    {
                         Key = "FavoriteTime",
                         Label = "FAVOURITE TIME TO PLAY",
                         Value = FormatFavoriteHour(favoriteHour)
@@ -162,12 +143,14 @@ namespace Osiris.Extensions.Stats
                     new StatsHomeWeeklyMetric
                     {
                         Key = "TrophiesEarned",
-                        Label = "TROPHIES EARNED",
-                        Value = weeklyTrophies.ToString("N0", CultureInfo.CurrentCulture)
+                        Label = "LAST TROPHIES EARNED",
+                        Available = trophyStats.Available,
+                        Trophies = trophyStats.Recent
                     },
                     new StatsHomeWeeklyMetric
                     {
                         Key = "MostPlayedGame",
+                        GameId = mostPlayed.Value == 0UL ? Guid.Empty : mostPlayed.Key,
                         Label = "MOST PLAYED GAME",
                         Value = mostPlayed.Value == 0UL ? "—" : GetGameName(gameById[mostPlayed.Key]),
                         Detail = mostPlayed.Value == 0UL ? null : FormatPlaytime(mostPlayed.Value)
@@ -197,72 +180,6 @@ namespace Osiris.Extensions.Stats
             {
                 Logger.Warn(exception, "Osiris Home weekly playtime could not be read by Stats.");
                 return new List<HomePlaytimeEntry>();
-            }
-        }
-
-        private long ReadTotalTrophies(IEnumerable<Game> games)
-        {
-            try
-            {
-                var pluginType = AppDomain.CurrentDomain
-                    .GetAssemblies()
-                    .Select(assembly => assembly.GetType(ExophasePluginTypeName, false))
-                    .FirstOrDefault(type => type != null);
-                var plugin = pluginType?
-                    .GetProperty("Current", BindingFlags.Public | BindingFlags.Static)?
-                    .GetValue(null, null);
-                var method = pluginType?.GetMethod(
-                    "GetEarnedTrophiesForOsiris",
-                    BindingFlags.Instance | BindingFlags.Public);
-                if (plugin == null || method == null)
-                {
-                    return 0L;
-                }
-
-                return games.Aggregate(0L, (sum, game) =>
-                {
-                    var earned = Math.Max(
-                        0,
-                        Convert.ToInt32(
-                            method.Invoke(plugin, new object[] { game.Id.ToString() }),
-                            CultureInfo.InvariantCulture));
-                    return long.MaxValue - sum < earned ? long.MaxValue : sum + earned;
-                });
-            }
-            catch (Exception exception)
-            {
-                Logger.Warn(exception, "Exophase trophies could not be read for Home weekly stats.");
-                return 0L;
-            }
-        }
-
-        private int GetWeeklyTrophyDelta(DateTime monday, long currentTotal)
-        {
-            try
-            {
-                WeeklyTrophySnapshot snapshot = null;
-                if (File.Exists(weeklyTrophyPath))
-                {
-                    snapshot = Serialization.FromJsonFile<WeeklyTrophySnapshot>(weeklyTrophyPath);
-                }
-                if (snapshot == null || snapshot.WeekStart.Date != monday.Date)
-                {
-                    snapshot = new WeeklyTrophySnapshot
-                    {
-                        WeekStart = monday.Date,
-                        Baseline = Math.Max(0L, currentTotal)
-                    };
-                }
-
-                Directory.CreateDirectory(Path.GetDirectoryName(weeklyTrophyPath));
-                File.WriteAllText(weeklyTrophyPath, Serialization.ToJson(snapshot));
-                var earned = Math.Max(0L, currentTotal - snapshot.Baseline);
-                return earned > int.MaxValue ? int.MaxValue : (int)earned;
-            }
-            catch (Exception exception)
-            {
-                Logger.Warn(exception, "The Stats weekly trophy baseline could not be read or saved for Home.");
-                return 0;
             }
         }
 
@@ -349,11 +266,6 @@ namespace Osiris.Extensions.Stats
             public ulong Seconds { get; set; }
         }
 
-        private sealed class WeeklyTrophySnapshot
-        {
-            public DateTime WeekStart { get; set; }
-            public long Baseline { get; set; }
-        }
     }
 
     internal sealed class StatsHomeWeeklySnapshot
@@ -368,6 +280,9 @@ namespace Osiris.Extensions.Stats
         public string Label { get; set; }
         public string Value { get; set; }
         public string Detail { get; set; }
+        public bool Available { get; set; } = true;
+        public Guid GameId { get; set; }
+        public List<StatsTrophyEntry> Trophies { get; set; }
         public List<StatsHomeWeeklyBar> Bars { get; set; }
     }
 

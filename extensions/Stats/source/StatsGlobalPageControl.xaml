@@ -395,17 +395,25 @@
               </Border>
             </Grid>
           </Border>
-          <ContentControl x:Name="WeeklyNewGamesCard" Tag="NEW GAMES" Canvas.Left="332" Canvas.Top="0" Width="150" Style="{StaticResource LibraryStatCardControlStyle}">
-            <TextBlock x:Name="WeeklyNewGamesValue" Text="0" Style="{StaticResource LibraryStatValueStyle}" />
-          </ContentControl>
-          <ContentControl x:Name="WeeklyFavoriteTimeCard" Tag="FAVOURITE TIME TO PLAY" Canvas.Left="498" Canvas.Top="0" Width="316" Style="{StaticResource LibraryStatCardControlStyle}">
+          <ContentControl x:Name="WeeklyFavoriteTimeCard" Tag="FAVOURITE TIME TO PLAY" Canvas.Left="332" Canvas.Top="0" Width="316" Style="{StaticResource LibraryStatCardControlStyle}">
             <TextBlock x:Name="WeeklyFavoriteTimeValue" Text="—" Style="{StaticResource LibraryStatValueStyle}" />
           </ContentControl>
-          <ContentControl x:Name="WeeklyAverageSessionCard" Tag="AVERAGE SESSION" Canvas.Left="830" Canvas.Top="0" Width="316" Style="{StaticResource LibraryStatCardControlStyle}">
+          <ContentControl x:Name="WeeklyAverageSessionCard" Tag="AVERAGE SESSION" Canvas.Left="664" Canvas.Top="0" Width="316" Style="{StaticResource LibraryStatCardControlStyle}">
             <TextBlock x:Name="WeeklyAverageSessionValue" Text="—" Style="{StaticResource LibraryStatValueStyle}" />
           </ContentControl>
-          <ContentControl x:Name="WeeklyTrophiesEarnedCard" Tag="TROPHIES EARNED" Canvas.Left="1162" Canvas.Top="0" Width="150" Style="{StaticResource LibraryStatCardControlStyle}">
-            <TextBlock x:Name="WeeklyTrophiesEarnedValue" Text="0" Style="{StaticResource LibraryStatValueStyle}" />
+          <ContentControl x:Name="WeeklyTrophiesEarnedCard" Tag="LAST TROPHIES EARNED" Canvas.Left="996" Canvas.Top="0" Width="316" Style="{StaticResource LibraryHighlightCardControlStyle}">
+            <Grid Margin="12,8">
+              <ItemsControl x:Name="WeeklyRecentTrophies" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate><DataTemplate>
+                  <Border Width="60" Height="60" Margin="8,0" Background="#070707" CornerRadius="8" ToolTip="{Binding ToolTip}">
+                    <Image Source="{Binding Icon}" Stretch="Uniform">
+                      <Image.Clip><RectangleGeometry Rect="0,0,60,60" RadiusX="8" RadiusY="8"/></Image.Clip>
+                    </Image>
+                  </Border>
+                </DataTemplate></ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </Grid>
           </ContentControl>
           <ContentControl x:Name="WeeklyMostPlayedGameCard" Tag="MOST PLAYED GAME" Canvas.Left="1328" Canvas.Top="0" Width="316" Style="{StaticResource LibraryHighlightCardControlStyle}">
             <TextBlock x:Name="WeeklyMostPlayedGameValue" Text="—" Style="{StaticResource LibraryHighlightValueStyle}" />

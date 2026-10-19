@@ -114,14 +114,14 @@ internal static class PresentationValidation
             Check(control.HasScreenshots, "Hidden card discovers first screenshots");
             var images = (FileInfo[])Field(control, "files");
             Check(images[0].Name == "newest.png", "Newest first");
-            Check(control.CaptureDateText == images[0].LastWriteTime.ToString("g"), "Current capture date");
+            Check(control.CaptureDateText == CaptureTime(images[0]).ToString("g"), "Current capture date");
             Check(control.MediaItems.Count == 2 && control.SelectedMediaItem == control.MediaItems[0], "Thumbnail rail population and selection");
             Check(((Image)Field(control, "currentImage")).Source != null, "Large current preview decoded");
             Check(((Image)Field(control, "nextImage")).Source != null, "Next preview decoded");
             Invoke(control, "Select", 1);
             Pump(250);
             Check((int)Field(control, "index") == 1, "Next navigation");
-            Check(control.CaptureDateText == images[1].LastWriteTime.ToString("g"), "Date follows navigation");
+            Check(control.CaptureDateText == CaptureTime(images[1]).ToString("g"), "Date follows navigation");
             control.SelectNextScreenshotCommand.Execute(null);
             Check(control.CurrentImageBitmap != null, "End-boundary command preserves image");
             Check(!((Button)Field(control, "next")).IsEnabled, "End boundary");
@@ -134,6 +134,17 @@ internal static class PresentationValidation
             Pump(250);
             Check(!control.HasScreenshots && control.MediaItems.Count == 0, "Per-game disable hides card without deleting files");
             Check(Directory.GetFiles(folder, "*.png").Length == 2, "Disable preserves screenshots");
+            File.WriteAllText(Path.Combine(root, "library", "files", game.Id.ToString(), "OsirisScreenshotsGallery.ini"), "Enabled=True");
+            for (var item = 0; item < 100; item++) WriteImage(Path.Combine(folder, "bulk-" + item + ".png"));
+            Invoke(control, "Refresh");
+            Pump(800);
+            Check(control.HasScreenshots && control.MediaItems.Count == 102, "Large gallery retains full screenshot count");
+            Check(System.Linq.Enumerable.Count(control.MediaItems, item => item.ThumbnailImage != null) == 6,
+                "Only six initial thumbnails decode before interaction");
+            Invoke(control, "LoadDeferredThumbnails");
+            Pump(1200);
+            Check(System.Linq.Enumerable.All(control.MediaItems, item => item.ThumbnailImage != null),
+                "Remaining thumbnails populate on demand in background batches");
             control.GameContextChanged(game, new Game { Id = Guid.NewGuid() });
             Pump(250);
             Check(!control.HasScreenshots, "Empty next game hides card");
@@ -148,6 +159,8 @@ internal static class PresentationValidation
         var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using (var stream = File.Create(path)) encoder.Save(stream);
     }
+    private static DateTime CaptureTime(FileInfo file) =>
+        file.CreationTime < file.LastWriteTime ? file.CreationTime : file.LastWriteTime;
     private static object Field(object obj, string name) => obj.GetType().GetField(name, BindingFlags.NonPublic | BindingFlags.Instance).GetValue(obj);
     private static void Invoke(object obj, string name, params object[] args) => obj.GetType().GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance).Invoke(obj, args);
     private static void Pump(int milliseconds)

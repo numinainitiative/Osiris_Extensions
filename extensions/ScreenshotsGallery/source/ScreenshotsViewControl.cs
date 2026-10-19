@@ -32,7 +32,7 @@ namespace Osiris.Extensions.ScreenshotsGallery
             set { var selected = MediaItems.IndexOf(value); if (selected >= 0 && selected != index) Select(selected); }
         }
         public BitmapSource CurrentImageBitmap => currentImage.Source as BitmapSource;
-        public string CaptureDateText => index >= 0 && index < files.Length ? files[index].LastWriteTime.ToString("g") : "";
+        public string CaptureDateText => index >= 0 && index < files.Length ? ScreenshotCollector.CaptureTimeUtc(files[index]).ToLocalTime().ToString("g") : "";
         public ICommand OpenScreenshotsViewCommand { get; }
         public ICommand SelectPreviousScreenshotCommand { get; }
         public ICommand SelectNextScreenshotCommand { get; }
@@ -55,6 +55,7 @@ namespace Osiris.Extensions.ScreenshotsGallery
         private string signature;
         private int generation, imageRequest, index;
         private bool loading;
+        private int deferredGeneration = -1;
 
         public ScreenshotsViewControl(string profile, Func<string> mode)
         {
@@ -88,6 +89,8 @@ namespace Osiris.Extensions.ScreenshotsGallery
             refresh.Tick += (_, __) => Refresh();
             Loaded += (_, __) => { refresh.Start(); Refresh(); };
             Unloaded += (_, __) => { refresh.Stop(); generation++; signature = null; };
+            AddHandler(Mouse.PreviewMouseDownEvent, new MouseButtonEventHandler((_, __) => LoadDeferredThumbnails()), true);
+            AddHandler(Mouse.PreviewMouseWheelEvent, new MouseWheelEventHandler((_, __) => LoadDeferredThumbnails()), true);
         }
 
         public override void GameContextChanged(Game oldContext, Game newContext)
@@ -121,31 +124,64 @@ namespace Osiris.Extensions.ScreenshotsGallery
             try
             {
                 var discovered = await Task.Run(() => ScreenshotCollector.IsEnabled(profile, gameId) && Directory.Exists(folder)
-                    ? new DirectoryInfo(folder).GetFiles("*.png").OrderByDescending(f => f.LastWriteTimeUtc).ThenBy(f => f.Name).ToArray()
+                    ? new DirectoryInfo(folder).GetFiles("*.png").OrderByDescending(ScreenshotCollector.CaptureTimeUtc).ThenBy(f => f.Name).ToArray()
                     : new FileInfo[0]);
                 if (request != generation) return;
-                var fingerprint = string.Join("|", discovered.Select(f => f.Name + ":" + f.Length + ":" + f.LastWriteTimeUtc.Ticks));
+                var fingerprint = string.Join("|", discovered.Select(f => f.Name + ":" + f.Length + ":" + f.LastWriteTimeUtc.Ticks + ":" + f.CreationTimeUtc.Ticks));
                 if (signature == fingerprint) return;
-                var thumbnails = await Task.Run(() => discovered.Select(f => new ScreenshotItem
+                var thumbnails = await Task.Run(() => discovered.Take(6).Select(f => new ScreenshotItem
                 {
                     ThumbnailImage = LoadImage(f.FullName, 180)
                 }).ToArray());
                 if (request != generation) return;
                 files = discovered;
                 MediaItems.Clear();
-                foreach (var thumbnail in thumbnails) MediaItems.Add(thumbnail);
+                for (var item = 0; item < files.Length; item++)
+                    MediaItems.Add(item < thumbnails.Length ? thumbnails[item] : new ScreenshotItem());
+                deferredGeneration = -1;
                 HasScreenshots = files.Length > 0;
                 signature = fingerprint;
                 index = 0;
                 previewColumn.Width = files.Length > 1 ? new GridLength(0.35, GridUnitType.Star) : new GridLength(0);
                 ResizeStage();
-                Select(0);
+                SelectCore(0);
             }
             catch (Exception error) { LogManager.GetLogger().Warn("Screenshots Gallery refresh failed: " + error.Message); }
-            finally { loading = false; }
+            finally
+            {
+                loading = false;
+                if (request != generation) _ = Dispatcher.BeginInvoke(new Action(Refresh));
+            }
         }
 
-        private async void Select(int selected)
+        private void Select(int selected)
+        {
+            LoadDeferredThumbnails();
+            SelectCore(selected);
+        }
+
+        private async void LoadDeferredThumbnails()
+        {
+            if (deferredGeneration == generation || files.Length <= 6) return;
+            var request = generation;
+            deferredGeneration = request;
+            var snapshot = files;
+            try
+            {
+                for (var start = 6; start < snapshot.Length; start += 24)
+                {
+                    if (request != generation || !ReferenceEquals(snapshot, files)) return;
+                    var offset = start;
+                    var images = await Task.Run(() => snapshot.Skip(offset).Take(24)
+                        .Select(file => LoadImage(file.FullName, 180)).ToArray());
+                    if (request != generation || !ReferenceEquals(snapshot, files)) return;
+                    for (var item = 0; item < images.Length; item++) MediaItems[offset + item].ThumbnailImage = images[item];
+                }
+            }
+            catch (Exception error) { LogManager.GetLogger().Warn("Deferred screenshot thumbnails failed: " + error.Message); deferredGeneration = -1; }
+        }
+
+        private async void SelectCore(int selected)
         {
             if (selected < 0 || selected >= files.Length)
             {
@@ -157,7 +193,7 @@ namespace Osiris.Extensions.ScreenshotsGallery
             previous.IsEnabled = index > 0;
             next.IsEnabled = index + 1 < files.Length;
             previous.Visibility = next.Visibility = files.Length > 1 ? Visibility.Visible : Visibility.Collapsed;
-            caption.Text = files[index].LastWriteTime.ToString("g") + " · " + (index + 1) + " / " + files.Length;
+            caption.Text = CaptureDateText + " · " + (index + 1) + " / " + files.Length;
             var path = files[index].FullName;
             var previewPath = index + 1 < files.Length ? files[index + 1].FullName : null;
             var request = ++imageRequest;
@@ -175,7 +211,8 @@ namespace Osiris.Extensions.ScreenshotsGallery
             if (selected < 0 || selected >= files.Length) return;
             var cinematic = UseCinematicExpandedExperience;
             var snapshot = files.Select(f => f.FullName).ToArray();
-            var dates = files.Select(f => f.LastWriteTime.ToString("g")).ToArray();
+            LoadDeferredThumbnails();
+            var dates = files.Select(f => ScreenshotCollector.CaptureTimeUtc(f).ToLocalTime().ToString("g")).ToArray();
             var context = generation;
             var initial = await Task.Run(() => LoadImage(snapshot[selected], 0));
             if (initial == null || context != generation || !IsLoaded) return;
@@ -308,9 +345,15 @@ namespace Osiris.Extensions.ScreenshotsGallery
             public void Execute(object parameter) => action();
             public event EventHandler CanExecuteChanged { add { } remove { } }
         }
-        public sealed class ScreenshotItem
+        public sealed class ScreenshotItem : INotifyPropertyChanged
         {
-            public BitmapSource ThumbnailImage { get; set; }
+            private BitmapSource thumbnail;
+            public BitmapSource ThumbnailImage
+            {
+                get => thumbnail;
+                set { thumbnail = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ThumbnailImage))); }
+            }
+            public event PropertyChangedEventHandler PropertyChanged;
             public bool IsVideo => false;
         }
         private sealed class ExpandedImage : INotifyPropertyChanged

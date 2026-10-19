@@ -208,6 +208,13 @@ internal static class Program
                 Check(service.Load(game).GameName == "Staged game", "Save commits staged catalogue");
                 service.Save(game, result);
                 Check(!original.Contains("fixture-key") && !original.Contains("achieved"), "cache excludes credentials and invented unlock state");
+                handler.Json = "{\"game\":{}}";
+                foreach (var unsupportedApp in new uint[] { 1262560, 48190 })
+                {
+                    try { service.Import(game, unsupportedApp, "fixture-key", CancellationToken.None).GetAwaiter().GetResult(); throw new Exception("empty Steam schema must not import"); }
+                    catch (InvalidDataException error) { Check(error.Message.Contains("no achievement catalogue") && !error.Message.Contains("API key"), "empty schema explains unavailable catalogue instead of blaming key"); }
+                    Check(File.ReadAllText(path) == original, "empty schema preserves previous catalogue and unlocks");
+                }
                 handler.Json = "{}";
                 Reject(() => service.Import(game, 1, "fixture-key", CancellationToken.None).GetAwaiter().GetResult(), "bad reimport");
                 Check(File.ReadAllText(path) == original, "bad reimport preserves cache");

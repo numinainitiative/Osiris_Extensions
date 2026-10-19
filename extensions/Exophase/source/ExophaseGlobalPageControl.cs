@@ -244,11 +244,11 @@ namespace Osiris.Extensions.Exophase
         {
             var summary = CalculateGameDataSummary(rows);
             FetchedGamesCountText.Text = summary.Fetched.ToString(CultureInfo.CurrentCulture) +
-                                         " Games with Exophase data";
+                                         " Games with Data";
             NoExophaseDataCountText.Text = summary.NoData.ToString(CultureInfo.CurrentCulture) +
-                                           " With no Exophase data";
+                                           " Games without Data";
             DisabledGamesCountText.Text = summary.Disabled.ToString(CultureInfo.CurrentCulture) +
-                                          " Games with Exophase manually disabled";
+                                          " Games manually disabled";
         }
 
         internal static ExophaseGameDataSummary CalculateGameDataSummary(
@@ -577,8 +577,10 @@ namespace Osiris.Extensions.Exophase
             }
 
             args.Handled = true;
-            var viewModel = Application.Current?.MainWindow?.DataContext;
-            if (TryNavigateThroughOsiris(viewModel, row))
+            // Capture the window before switching views detaches this extension page.
+            var navigationOwner = Window.GetWindow(this) ?? Application.Current?.MainWindow;
+            var viewModel = navigationOwner?.DataContext;
+            if (TryNavigateThroughOsiris(viewModel, row, navigationOwner))
             {
                 return;
             }
@@ -593,7 +595,10 @@ namespace Osiris.Extensions.Exophase
             api.MainView.SelectGame(row.GameId);
         }
 
-        private static bool TryNavigateThroughOsiris(object viewModel, ExophaseGameRow row)
+        private static bool TryNavigateThroughOsiris(
+            object viewModel,
+            ExophaseGameRow row,
+            FrameworkElement navigationOwner)
         {
             if (viewModel == null || row == null)
             {
@@ -612,13 +617,18 @@ namespace Osiris.Extensions.Exophase
                 var switchToDetails = navigationType?.GetMethod(
                     "ExecuteSwitchDetailsCommand",
                     BindingFlags.Public | BindingFlags.Static);
-                if (navigateToGame == null || switchToDetails == null)
+                var selectBeforeRender = navigationType?.GetMethod(
+                    "SelectGameBeforeRender",
+                    BindingFlags.Public | BindingFlags.Static);
+                if (navigateToGame == null || switchToDetails == null || selectBeforeRender == null)
                 {
                     return false;
                 }
 
                 navigateToGame.Invoke(null, new object[] { viewModel, row.SourceGame, row.GameId });
                 switchToDetails.Invoke(null, new[] { viewModel });
+                // Details rebinds its selection when activated; restore it after that binding pass.
+                selectBeforeRender.Invoke(null, new object[] { navigationOwner, viewModel, row.GameId });
                 return true;
             }
             catch

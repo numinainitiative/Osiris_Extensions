@@ -43,7 +43,8 @@ namespace Osiris.Extensions.Trophies
    }
    catch (OperationCanceledException) { if (request==generation) StatusText.Text="Fetch cancelled. Catalogue unchanged."; }
    catch (ArgumentException error) { if (request==generation) StatusText.Text=error.Message; }
-   catch { if (request==generation) StatusText.Text="Could not fetch. Check your saved Steam API key and App ID."; }
+   catch (InvalidDataException error) { if (request==generation) StatusText.Text=error.Message; }
+   catch { if (request==generation) StatusText.Text="Could not fetch from Steam. Try again later. Existing catalogue unchanged."; }
    finally { operation.Dispose(); if (pending==operation) pending=null; if (request==generation) SetBusy(false); }
   }
   private async void SyncClick(object sender,RoutedEventArgs e)

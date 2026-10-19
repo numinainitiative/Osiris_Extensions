@@ -58,6 +58,8 @@ namespace Osiris.Extensions.Trophies
         public static Catalogue Parse(string json, uint id)
         {
             var game = JObject.Parse(json)["game"] as JObject;
+            if (game != null && !game.HasValues)
+                throw new InvalidDataException("Steam returned no achievement catalogue for this App ID. Check the ID; games without Steam achievements cannot be imported. Existing catalogue unchanged.");
             if (game == null || game["availableGameStats"] is not JObject stats)
                 throw new InvalidDataException("Steam did not return a usable achievement catalogue.");
             var result = new Catalogue { AppId = id, GameName = (string)game["gameName"] ?? "Steam app " + id, ImportedUtc = DateTime.UtcNow };

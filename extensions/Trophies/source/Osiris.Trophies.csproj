@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
- <PropertyGroup><TargetFramework>net462</TargetFramework><UseWPF>true</UseWPF><LangVersion>latest</LangVersion><AssemblyName>Osiris.Trophies</AssemblyName><Version>0.1.0</Version><DebugType>None</DebugType><OsirisDevelopmentRoot>$(MSBuildThisFileDirectory)..\..\..\..\..\Programming\Development\Osiris</OsirisDevelopmentRoot></PropertyGroup>
+ <PropertyGroup><TargetFramework>net462</TargetFramework><UseWPF>true</UseWPF><LangVersion>latest</LangVersion><AssemblyName>Osiris.Trophies</AssemblyName><Version>0.1.1</Version><DebugType>None</DebugType><OsirisDevelopmentRoot>$(MSBuildThisFileDirectory)..\..\..\..\..\Programming\Development\Osiris</OsirisDevelopmentRoot></PropertyGroup>
  <ItemGroup>
   <Reference Include="Playnite.SDK"><HintPath>$(OsirisDevelopmentRoot)\App\Playnite.SDK.dll</HintPath><Private>false</Private></Reference>
   <Reference Include="Newtonsoft.Json"><HintPath>$(OsirisDevelopmentRoot)\App\Newtonsoft.Json.dll</HintPath><Private>false</Private></Reference>

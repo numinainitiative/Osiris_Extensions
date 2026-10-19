@@ -9,7 +9,7 @@
              TextOptions.TextRenderingMode="ClearType">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
-        <SolidColorBrush x:Key="CompletedTrophyBrush" Color="#FFD34E" />
+        <SolidColorBrush x:Key="CompletedTrophyBrush" Color="#9874C2" />
 
         <Style x:Key="LibraryToolbarComboBoxItem" TargetType="ComboBoxItem">
             <Setter Property="Height" Value="40" />
@@ -625,7 +625,7 @@
                                 <Rectangle Margin="5,8,5,8"
                                            Fill="#F0F1F7" />
                                 <Path Data="M1,21 V3 H57 V21 Z"
-                                      Stroke="#FFD34E"
+                                      Stroke="{StaticResource CompletedTrophyBrush}"
                                       StrokeThickness="2"
                                       StrokeDashArray="3,2"
                                       StrokeDashCap="Flat"
@@ -635,7 +635,7 @@
                             </Grid>
                             <TextBlock VerticalAlignment="Center"
                                        Text="All trophies achieved"
-                                       Foreground="#FFD34E" />
+                                       Foreground="{StaticResource CompletedTrophyBrush}" />
                         </StackPanel>
                     </StackPanel>
 
@@ -645,16 +645,16 @@
                         <TextBlock x:Name="FetchedGamesCountText"
                                    Margin="0,0,28,0"
                                    VerticalAlignment="Center"
-                                   Text="0 Games with Exophase data"
+                                   Text="0 Games with Data"
                                    Foreground="#777A82" />
                         <TextBlock x:Name="NoExophaseDataCountText"
                                    Margin="0,0,28,0"
                                    VerticalAlignment="Center"
-                                   Text="0 With no Exophase data"
+                                   Text="0 Games without Data"
                                    Foreground="#777A82" />
                         <TextBlock x:Name="DisabledGamesCountText"
                                    VerticalAlignment="Center"
-                                   Text="0 Games with Exophase manually disabled"
+                                   Text="0 Games manually disabled"
                                    Foreground="#777A82" />
                     </StackPanel>
                 </Grid>

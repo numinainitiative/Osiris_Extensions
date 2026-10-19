@@ -33,6 +33,30 @@ page. It returns the currently selected completion-time profile and each
 game's already saved manual, automatic, or cached estimates. Reading that
 bridge never searches HowLongToBeat or downloads new data.
 
+## Development navigation fix (unreleased)
+
+Game titles on the global page use the same Details navigation sequence as
+Home and Library, including a selection refresh after native view rebinding.
+The owning window is captured before leaving the extension page so the refresh
+survives page detachment. Back retains the originating extension page, and a
+pending refresh cannot override a newer navigation. The SDK fallback remains
+available when the Osiris theme navigation bridge is absent.
+
+See the shared [navigation regression checks](../../validation/ExtensionGameNavigation/README.md).
+
+## Development page footer (unreleased)
+
+The global page has an Exophase-style fixed bottom legend: solid white for time
+played, vertical stripes for Main Story, small diagonal stripes for Main + Extras,
+and large diagonal stripes for Completionist. All four samples reuse the actual
+timeline renderer. Library-wide
+counts show games with usable completion data, without data for the selected
+time profile, and manually disabled games. Counts refresh with the page's stored
+data and are independent of sorting, search, and the played-games filter. The
+labels are **Games with Data**, **Games without Data**, and **Games manually disabled**.
+Both the sample and counter groups wrap on narrower windows; only the table scrolls. This display
+does not fetch data or change game settings.
+
 ## Identity
 
 - ID: `HowLongToBeat_fba3e63d-d1a1-4b9d-91c6-091a1220377d`

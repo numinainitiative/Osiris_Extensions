@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
   <PropertyGroup>
     <TargetFramework>net462</TargetFramework>
+    <Version>0.1.1</Version>
     <UseWPF>true</UseWPF>
     <AssemblyName>Osiris.ScreenshotsGallery</AssemblyName>
     <RootNamespace>Osiris.Extensions.ScreenshotsGallery</RootNamespace>

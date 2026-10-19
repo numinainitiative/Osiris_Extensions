@@ -6,6 +6,12 @@ namespace PlayniteExtensions.Common;
 
 public class GameNameMatcher
 {
+    public static string ToEditionIndependentKey(string value)
+    {
+        var original = RemoveTrademarks(value ?? "");
+        var stripped = Regex.Replace(original, @"\s+(?:[-–—:]\s*)?(?:gold|deluxe|ultimate|complete|collector'?s?|game of the year|goty)\s+edition\s*$", "", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        return ToGameKey(string.IsNullOrWhiteSpace(stripped) ? original : stripped);
+    }
 	public static string ToAlphanumericLower(string str)
 	{
 		if (string.IsNullOrEmpty(str))

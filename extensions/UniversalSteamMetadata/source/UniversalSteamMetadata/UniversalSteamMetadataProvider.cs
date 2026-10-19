@@ -346,6 +346,19 @@ public class UniversalSteamMetadataProvider : OnDemandMetadataProvider
 
 	internal uint GetMatchingGame(Game gameInfo)
 	{
+		return GetMatchingGameCore(gameInfo);
+	}
+
+	internal static uint MatchEditionVariant(string name, List<StoreSearchResult> results)
+	{
+		var key = GameNameMatcher.ToEditionIndependentKey(name);
+		var matches = results.Where(r => r != null && GameNameMatcher.ToEditionIndependentKey(r.Name) == key)
+			.Select(r => r.GameId).Where(id => id != 0).Distinct().ToList();
+		return matches.Count == 1 ? matches[0] : 0;
+	}
+
+	private uint GetMatchingGameCore(Game gameInfo)
+	{
 		string normalizedName = gameInfo.Name.NormalizeGameName();
 		List<StoreSearchResult> searchResults = UniversalSteamMetadata.GetSearchResults(normalizedName);
 		string alphanumericKey = GameNameMatcher.ToAlphanumericLower(gameInfo.Name);
@@ -360,6 +373,8 @@ public class UniversalSteamMetadataProvider : OnDemandMetadataProvider
 		{
 			return storeSearchResult.GameId;
 		}
+		var editionMatch = MatchEditionVariant(gameInfo.Name, searchResults);
+		if (editionMatch != 0) return editionMatch;
 		searchResults.ForEach(delegate(StoreSearchResult a)
 		{
 			a.Name = a.Name.NormalizeGameName();

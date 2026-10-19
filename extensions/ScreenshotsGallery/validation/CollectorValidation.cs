@@ -21,7 +21,7 @@ internal static class CollectorValidation
         var warnings = 0;
         var old = Path.Combine(input, "old.png");
         Save(old);
-        using (var collector = new ScreenshotCollector(profile, () => input, _ => warnings++))
+        using (var collector = new ScreenshotCollector(profile, () => input, message => { warnings++; Console.WriteLine(message); }))
         {
             collector.Start(first);
             collector.Poll(); collector.Poll();
@@ -29,11 +29,16 @@ internal static class CollectorValidation
             var fresh = Path.Combine(input, "new.png");
             Save(fresh);
             var original = File.ReadAllBytes(fresh);
+            var originalCreated = File.GetCreationTimeUtc(fresh);
+            var originalModified = File.GetLastWriteTimeUtc(fresh);
             collector.Poll(); collector.Poll();
             Check(Count(profile, first) == 1, "new screenshot routed to running game");
             var saved = Directory.GetFiles(ScreenshotCollector.GameFolder(profile, first)).Single();
             Check(File.ReadAllBytes(saved).SequenceEqual(original), "copy byte-identical");
-            Check(File.Exists(fresh), "Windows original preserved");
+            Check(!File.Exists(fresh), "verified capture removed from Windows source folder");
+            Check(File.GetCreationTimeUtc(saved) == originalCreated && File.GetLastWriteTimeUtc(saved) == originalModified,
+                "move preserves source creation and modification timestamps");
+            Check(File.Exists(old), "pre-session screenshot remains untouched");
             collector.Poll(); collector.Poll();
             Check(Count(profile, first) == 1, "duplicate polls do not duplicate copy");
             var locked = Path.Combine(input, "locked.png");
@@ -49,6 +54,7 @@ internal static class CollectorValidation
             Save(Path.Combine(input, "ambiguous.png"));
             collector.Poll(); collector.Poll();
             Check(Count(profile, first) == 2 && Count(profile, second) == 0, "multiple games never guessed");
+            Check(File.Exists(Path.Combine(input, "ambiguous.png")), "ambiguous screenshot is never removed");
             collector.Stop(first);
             Save(Path.Combine(input, "second.png"));
             collector.Poll(); collector.Poll();
@@ -68,6 +74,7 @@ internal static class CollectorValidation
             Save(Path.Combine(input, "disabled.png"));
             collector.Poll(); collector.Poll();
             Check(Count(profile, second) == 2, "disabled game does not collect screenshots");
+            Check(File.Exists(Path.Combine(input, "disabled.png")), "disabled-period screenshot remains in Windows folder");
             File.WriteAllText(settings, "Enabled=True\r\n");
             collector.Poll(); collector.Poll();
             Check(Count(profile, second) == 2, "enable does not backfill disabled-period captures");
@@ -77,6 +84,17 @@ internal static class CollectorValidation
             collector.Stop(second);
         }
         Check(warnings == 0, "expected locked-file retries do not emit failures");
+        var oldCapture = Path.Combine(root, "created-days-ago.png");
+        Save(oldCapture);
+        var capture = DateTime.UtcNow.AddDays(-5);
+        File.SetCreationTimeUtc(oldCapture, capture);
+        File.SetLastWriteTimeUtc(oldCapture, DateTime.UtcNow);
+        Check(Math.Abs((ScreenshotCollector.CaptureTimeUtc(new FileInfo(oldCapture)) - capture).TotalSeconds) < 1,
+            "creation date wins over later copy/edit modification");
+        File.SetCreationTimeUtc(oldCapture, DateTime.UtcNow);
+        File.SetLastWriteTimeUtc(oldCapture, capture);
+        Check(Math.Abs((ScreenshotCollector.CaptureTimeUtc(new FileInfo(oldCapture)) - capture).TotalSeconds) < 1,
+            "preserved modification date recovers capture age when copying resets creation");
         Console.WriteLine("PASS " + checks + " collector checks; synthetic PNGs only, no screen capture.");
     }
 

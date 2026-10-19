@@ -9,15 +9,23 @@ While exactly one game is running through Osiris, collect newly saved Windows
 Win + Print Screen PNGs into the active profile's
 `library/files/<game GUID>/Screenshots` folder. Resolve the Windows Screenshots
 known folder through the Shell API, respecting redirects and OneDrive.
-Keep the Windows original. Never hook keys, capture the desktop, modify the
+Move newly captured images out of the Windows folder only after a complete,
+SHA256-verified copy exists in the game's folder. Preserve creation/modification
+timestamps. Locked, incomplete, disabled-session and ambiguous captures remain
+in Windows; existing files are never backfilled or removed. Never hook keys,
+capture the desktop, modify the
 clipboard, import old screenshots, or guess between multiple running games.
 Osiris must be running and tracking the game session.
 
-Polling waits for an unchanged file and validates its image before copying.
+Polling waits for an unchanged file and validates its image before transferring.
 Collection stops when the tracked session ends. The new Game Details card,
 below Game Gallery, stays hidden until screenshots exist and refreshes automatically.
 The card uses Game Gallery's exact 520-pixel content height, margins, large-image
 stage, 190-pixel thumbnail rail, rounded corners and shared arrow controls.
+Only the first six thumbnails decode initially; the rest are placeholders until
+card scrolling, selection, navigation or opening the viewer requests background
+batches. The full count and navigation remain available. Changing games discards
+stale thumbnail work and promptly discovers the next game's screenshots.
 The newest screenshot is selected first; its capture date overlays the picture's
 bottom-left corner, including in the expanded viewer. Left/right controls and
 the thumbnail rail browse the complete collection. Click the main image for the
@@ -33,7 +41,10 @@ Open folder is a text action at the right of the card header and shares Game
 Gallery's darker secondary header colour (`#484848`). Collapsed cards retain
 the same 10-pixel lower inset as Game Gallery; spacers are transparent to preserve
 the rounded outer outline. Expanded images use uniform scaling, not cropping.
-Originals remain unchanged and are not held open.
+Display and ordering use the earliest preserved creation/modification timestamp,
+recovering old images when copying reset creation but retained modification.
+If both timestamps were reset, the original capture time cannot be recovered
+from filesystem metadata. Browsing images never modifies or holds them open.
 
 Run `build.ps1` or `package.ps1`. No personal profile or screenshots are packaged.
 
@@ -47,7 +58,8 @@ styles are retained. The user-requested full-width gallery replaces the canonica
 The existing game-edit Save/Cancel footer owns the transaction: changes are
 staged until Save; Cancel leaves settings and files untouched. Saved deletions
 move only that game's direct PNG copies into `Screenshots/Deleted` for recovery;
-Windows Pictures originals are never changed. The per-game switch is persisted
+Existing Windows Pictures images are untouched by editor deletions. New in-session
+captures have already been moved out of Windows after verification. The per-game switch is persisted
 in `OsirisScreenshotsGallery.ini` alongside the game's files. Disabling stops
 collection for that game and hides its gallery without removing screenshots.
 The extension icon is the user's supplied Screenshots Gallery PNG from the

@@ -217,8 +217,32 @@ namespace Osiris.Extensions.HowLongToBeat
                 games.Add(row);
             }
 
+            UpdateGameDataSummary(rows);
             GamesView.Refresh();
             RefreshUpdateDatabaseButton();
+        }
+
+        private void UpdateGameDataSummary(IEnumerable<HowLongToBeatGameRow> rows)
+        {
+            var summary = CalculateGameDataSummary(rows);
+            FetchedGamesCountText.Text = summary.Fetched.ToString(CultureInfo.CurrentCulture) +
+                                         " Games with Data";
+            NoCompletionDataCountText.Text = summary.NoData.ToString(CultureInfo.CurrentCulture) +
+                                            " Games without Data";
+            DisabledGamesCountText.Text = summary.Disabled.ToString(CultureInfo.CurrentCulture) +
+                                          " Games manually disabled";
+        }
+
+        internal static HowLongToBeatGameDataSummary CalculateGameDataSummary(
+            IEnumerable<HowLongToBeatGameRow> rows)
+        {
+            var values = (rows ?? Enumerable.Empty<HowLongToBeatGameRow>())
+                .Where(row => row != null)
+                .ToList();
+            return new HowLongToBeatGameDataSummary(
+                values.Count(row => row.DataState == HowLongToBeatGameDataState.Fetched),
+                values.Count(row => row.DataState == HowLongToBeatGameDataState.NoData),
+                values.Count(row => row.DataState == HowLongToBeatGameDataState.Disabled));
         }
 
         private HowLongToBeatGameRow CreateRow(Game game, string profile)
@@ -231,7 +255,8 @@ namespace Osiris.Extensions.HowLongToBeat
                     ResolveIconPath(game.Icon),
                     fallbackIconPath,
                     profile,
-                    "Disabled for this game");
+                    "Disabled for this game",
+                    HowLongToBeatGameDataState.Disabled);
             }
 
             var result = SelectStoredResult(game, storedSettings);
@@ -462,8 +487,10 @@ namespace Osiris.Extensions.HowLongToBeat
             }
 
             args.Handled = true;
-            var viewModel = Application.Current?.MainWindow?.DataContext;
-            if (TryNavigateThroughOsiris(viewModel, row))
+            // Capture the window before switching views detaches this extension page.
+            var navigationOwner = Window.GetWindow(this) ?? Application.Current?.MainWindow;
+            var viewModel = navigationOwner?.DataContext;
+            if (TryNavigateThroughOsiris(viewModel, row, navigationOwner))
             {
                 return;
             }
@@ -480,7 +507,8 @@ namespace Osiris.Extensions.HowLongToBeat
 
         private static bool TryNavigateThroughOsiris(
             object viewModel,
-            HowLongToBeatGameRow row)
+            HowLongToBeatGameRow row,
+            FrameworkElement navigationOwner)
         {
             if (viewModel == null || row == null)
             {
@@ -499,7 +527,10 @@ namespace Osiris.Extensions.HowLongToBeat
                 var switchToDetails = navigationType?.GetMethod(
                     "ExecuteSwitchDetailsCommand",
                     BindingFlags.Public | BindingFlags.Static);
-                if (navigateToGame == null || switchToDetails == null)
+                var selectBeforeRender = navigationType?.GetMethod(
+                    "SelectGameBeforeRender",
+                    BindingFlags.Public | BindingFlags.Static);
+                if (navigateToGame == null || switchToDetails == null || selectBeforeRender == null)
                 {
                     return false;
                 }
@@ -508,6 +539,8 @@ namespace Osiris.Extensions.HowLongToBeat
                     null,
                     new object[] { viewModel, row.SourceGame, row.GameId });
                 switchToDetails.Invoke(null, new[] { viewModel });
+                // Details rebinds its selection when activated; restore it after that binding pass.
+                selectBeforeRender.Invoke(null, new object[] { navigationOwner, viewModel, row.GameId });
                 return true;
             }
             catch
@@ -637,6 +670,27 @@ namespace Osiris.Extensions.HowLongToBeat
         }
     }
 
+    internal enum HowLongToBeatGameDataState
+    {
+        Fetched,
+        NoData,
+        Disabled
+    }
+
+    internal sealed class HowLongToBeatGameDataSummary
+    {
+        public int Fetched { get; }
+        public int NoData { get; }
+        public int Disabled { get; }
+
+        public HowLongToBeatGameDataSummary(int fetched, int noData, int disabled)
+        {
+            Fetched = Math.Max(0, fetched);
+            NoData = Math.Max(0, noData);
+            Disabled = Math.Max(0, disabled);
+        }
+    }
+
     internal sealed class HowLongToBeatGameRow
     {
         public Game SourceGame { get; }
@@ -653,6 +707,7 @@ namespace Osiris.Extensions.HowLongToBeat
         public long LongestTimeSeconds { get; }
         public bool HasTimes => LongestTimeSeconds > 0;
         public string StatusText { get; }
+        public HowLongToBeatGameDataState DataState { get; }
 
         public HowLongToBeatGameRow(
             Game game,
@@ -678,6 +733,7 @@ namespace Osiris.Extensions.HowLongToBeat
                 MainStorySeconds,
                 Math.Max(MainExtraSeconds, CompletionistSeconds));
             StatusText = string.Empty;
+            DataState = HasTimes ? HowLongToBeatGameDataState.Fetched : HowLongToBeatGameDataState.NoData;
         }
 
         private HowLongToBeatGameRow(
@@ -685,10 +741,12 @@ namespace Osiris.Extensions.HowLongToBeat
             string iconPath,
             string fallbackIconPath,
             string timeProfile,
-            string statusText)
+            string statusText,
+            HowLongToBeatGameDataState dataState)
             : this(game, iconPath, fallbackIconPath, timeProfile, 0, 0, 0)
         {
             StatusText = statusText;
+            DataState = dataState;
         }
 
         public static HowLongToBeatGameRow WithoutTimes(
@@ -696,14 +754,16 @@ namespace Osiris.Extensions.HowLongToBeat
             string iconPath,
             string fallbackIconPath,
             string timeProfile,
-            string statusText)
+            string statusText,
+            HowLongToBeatGameDataState dataState = HowLongToBeatGameDataState.NoData)
         {
             return new HowLongToBeatGameRow(
                 game,
                 iconPath,
                 fallbackIconPath,
                 timeProfile,
-                statusText);
+                statusText,
+                dataState);
         }
 
         private static string FormatPlayedTime(ulong seconds)

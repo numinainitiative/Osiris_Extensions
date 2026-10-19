@@ -8,6 +8,48 @@ internal static class InsightsValidation
 {
     static int checks;
     static void Check(bool value) { checks++; if (!value) throw new Exception("Insight check " + checks + " failed"); }
+    static void ValidateTrophyStats()
+    {
+        var now = new DateTime(2026, 10, 8, 12, 0, 0, DateTimeKind.Local);
+        var entries = new[] {
+            new StatsTrophyEntry { Id = "old", Name = "Old", UnlockedUtc = now.AddDays(-20).ToUniversalTime() },
+            new StatsTrophyEntry { Id = "common", Name = "Common", UnlockedUtc = now.AddMinutes(-1).ToUniversalTime(), GlobalPercent = 20 },
+            new StatsTrophyEntry { Id = "rare", Name = "Rare", UnlockedUtc = now.AddMinutes(-1).ToUniversalTime(), GlobalPercent = 1 },
+            new StatsTrophyEntry { Id = "third", Name = "Third", UnlockedUtc = now.AddHours(-2).ToUniversalTime() },
+            new StatsTrophyEntry { Id = "locked" },
+            new StatsTrophyEntry { Id = "future", UnlockedUtc = now.AddDays(1).ToUniversalTime() },
+            new StatsTrophyEntry { Id = "monday", UnlockedUtc = now.Date.AddDays(-3).ToUniversalTime() },
+            new StatsTrophyEntry { Id = "sunday", UnlockedUtc = now.Date.AddDays(-3).AddTicks(-1).ToUniversalTime() }
+        };
+        var snapshot = StatsTrophiesSnapshot.Create(true, entries, now);
+        Check(snapshot.Available && snapshot.Total == 6 && snapshot.Weekly == 4);
+        Check(snapshot.Recent.Select(t => t.Id).SequenceEqual(new[] { "rare", "common", "third" }));
+        var unavailable = StatsTrophiesSnapshot.Create(false, entries, now);
+        Check(!unavailable.Available && unavailable.Total == 0 && unavailable.Weekly == 0 && unavailable.Recent.Count == 0);
+        Check(StatsTrophiesSnapshot.Create(true, new StatsTrophyEntry[0], now).Recent.Count == 0);
+        Check(StatsTrophiesSnapshot.Create(true, entries.Take(1), now).Recent.Count == 1);
+        var xaml = System.Xml.Linq.XDocument.Load("GitHub/Extensions/extensions/Stats/source/StatsGlobalPageControl.xaml");
+        System.Xml.Linq.XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        var card = xaml.Descendants().Single(e => (string)e.Attribute(x + "Name") == "WeeklyTrophiesEarnedCard");
+        Check((string)card.Attribute("Width") == "316");
+        Check((string)card.Attribute("Tag") == "LAST TROPHIES EARNED");
+        Check(!card.Descendants().Any(e => (string)e.Attribute(x + "Name") == "WeeklyTrophiesEarnedValue"));
+        var icons = card.Descendants().Single(e => (string)e.Attribute(x + "Name") == "WeeklyRecentTrophies");
+        Check((string)icons.Attribute("HorizontalAlignment") == "Center");
+        var trophyBorder = icons.Descendants().Single(e => e.Name.LocalName == "Border");
+        Check((string)trophyBorder.Attribute("Margin") == "8,0" && (string)trophyBorder.Attribute("CornerRadius") == "8");
+        var trophyClip = icons.Descendants().Single(e => e.Name.LocalName == "RectangleGeometry");
+        Check((string)trophyClip.Attribute("RadiusX") == "8" && (string)trophyClip.Attribute("RadiusY") == "8");
+        Check(!xaml.Descendants().Any(e => (string)e.Attribute(x + "Name") == "WeeklyNewGamesCard"));
+        Check(card.Descendants().Any(e => (string)e.Attribute(x + "Name") == "WeeklyRecentTrophies"));
+        var source = System.IO.File.ReadAllText("GitHub/Extensions/extensions/Stats/source/StatsGlobalPageControl.xaml.cs");
+        Check(source.Contains("WeeklyTrophiesEarnedCard.Visibility = TrophiesEarnedCard.Visibility") && source.Contains("trophyStats.Available ? Visibility.Visible : Visibility.Collapsed"));
+        Check(!source.Contains("exophase?.GetEarnedTrophies(game)"));
+        Check(source.Contains("new StatsHomeWeeklyProvider(api, sessionLedger).BuildSnapshot(DateTime.Now)"));
+        var provider = System.IO.File.ReadAllText("GitHub/Extensions/extensions/Stats/source/StatsHomeWeeklyProvider.cs");
+        Check(!provider.Contains("Key = \"NewGames\"") && !provider.Contains("GetWeeklyTrophyDelta"));
+        Check(provider.Contains("Trophies = trophyStats.Recent") && provider.Contains("Available = trophyStats.Available"));
+    }
     static void ValidateGlobalInsights()
     {
         var today = new DateTime(2026, 10, 3);
@@ -133,6 +175,7 @@ internal static class InsightsValidation
         }
         Check(switches == 11);
         ValidateGlobalInsights();
+        ValidateTrophyStats();
         Console.WriteLine(checks + " insight checks passed.");
     }
 }

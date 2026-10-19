@@ -198,3 +198,17 @@ generate a replacement icon.
 It is the user's supplied Stats PNG, including its coloured background.
 
 Stats is distributed through the public Osiris extension catalog.
+
+## Development follow-up: trophy statistics
+
+Weekly Stats no longer includes New Games. Last Trophies Earned is double-width and
+shows only the three latest earned trophies, centred, across visible
+library games (hover an icon for its game, title and earned date). Latest trophies
+are global, not limited to the current week; ties prefer the rarer trophy.
+Both weekly and All Time trophy units require the loaded Trophies extension.
+Counts and icons come from its source-filtered catalogues, not Exophase totals or
+sync-time baselines. No catalogue import or network request is made by Stats.
+Home and the Stats page use the same weekly snapshot provider, including trophy
+availability and recent icons; there is no separate Exophase trophy baseline.
+Saved Home New Games selections migrate to Last Trophies Earned without changing
+other selected metrics. Both latest-trophy cards have no numeric counter.

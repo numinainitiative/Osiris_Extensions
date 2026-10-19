@@ -320,6 +320,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="84" />
                 <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" MinHeight="80" />
             </Grid.RowDefinitions>
 
             <Grid Grid.Row="0"
@@ -372,8 +373,9 @@
                 </StackPanel>
             </Grid>
 
-            <Border Grid.Row="1"
-                    Margin="28,0,28,28"
+            <Border x:Name="GamesTableContainer"
+                    Grid.Row="1"
+                    Margin="28,0"
                     Background="#090909"
                     BorderBrush="#242424"
                     BorderThickness="1"
@@ -534,6 +536,90 @@
                             Visibility="Collapsed" />
                 </Grid>
             </Border>
+
+            <Grid x:Name="TableLegendBar"
+                  Grid.Row="2"
+                  MinHeight="62"
+                  Margin="52,0,52,18"
+                  TextElement.FontFamily="Rajdhani"
+                  TextElement.FontSize="17"
+                  TextElement.FontWeight="SemiBold">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="3*" />
+                    <ColumnDefinition Width="2*" />
+                </Grid.ColumnDefinitions>
+                <WrapPanel x:Name="ProgressLegend"
+                            Grid.Column="0"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center"
+                            Orientation="Horizontal">
+                    <StackPanel Margin="0,0,34,0"
+                                VerticalAlignment="Center"
+                                Orientation="Horizontal">
+                        <Grid Width="58" Height="24" Margin="0,0,10,0">
+                            <local:HowLongToBeatLegendSample x:Name="PlayedLegendSample"
+                                                            Kind="TimePlayed"
+                                                            Margin="5,5" />
+                        </Grid>
+                        <TextBlock VerticalAlignment="Center"
+                                   Text="Time played"
+                                   Foreground="#A5A7AE" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,34,0"
+                                VerticalAlignment="Center"
+                                Orientation="Horizontal">
+                        <Grid Width="58" Height="24" Margin="0,0,10,0">
+                            <local:HowLongToBeatLegendSample x:Name="MainStoryLegendSample"
+                                                            Kind="MainStory"
+                                                            Margin="5,5" />
+                        </Grid>
+                        <TextBlock VerticalAlignment="Center"
+                                   Text="Main Story"
+                                   Foreground="#A5A7AE" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,34,0" VerticalAlignment="Center" Orientation="Horizontal">
+                        <Grid Width="58" Height="24" Margin="0,0,10,0">
+                            <local:HowLongToBeatLegendSample x:Name="MainExtraLegendSample"
+                                                            Kind="MainExtra"
+                                                            Margin="5,5" />
+                        </Grid>
+                        <TextBlock VerticalAlignment="Center" Text="Main + Extras" Foreground="#A5A7AE" />
+                    </StackPanel>
+                    <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                        <Grid Width="58" Height="24" Margin="0,0,10,0">
+                            <local:HowLongToBeatLegendSample x:Name="CompletionistLegendSample"
+                                                            Kind="Completionist"
+                                                            Margin="5,5" />
+                        </Grid>
+                        <TextBlock VerticalAlignment="Center" Text="Completionist" Foreground="#A5A7AE" />
+                    </StackPanel>
+                </WrapPanel>
+
+                <WrapPanel x:Name="GameDataSummary"
+                           Grid.Column="1"
+                           Margin="34,0,0,0"
+                           HorizontalAlignment="Right"
+                           VerticalAlignment="Center"
+                           Orientation="Horizontal">
+                    <TextBlock x:Name="FetchedGamesCountText"
+                               Margin="0,0,28,0"
+                               VerticalAlignment="Center"
+                               Text="0 Games with Data"
+                               TextWrapping="Wrap"
+                               Foreground="#777A82" />
+                    <TextBlock x:Name="NoCompletionDataCountText"
+                               Margin="0,0,28,0"
+                               VerticalAlignment="Center"
+                               Text="0 Games without Data"
+                               TextWrapping="Wrap"
+                               Foreground="#777A82" />
+                    <TextBlock x:Name="DisabledGamesCountText"
+                               VerticalAlignment="Center"
+                               Text="0 Games manually disabled"
+                               TextWrapping="Wrap"
+                               Foreground="#777A82" />
+                </WrapPanel>
+            </Grid>
         </Grid>
     </Grid>
 </UserControl>

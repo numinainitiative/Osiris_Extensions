@@ -25,8 +25,11 @@ public class IgnApiClient(IWebDownloader downloader)
 
     public IgnGame Get(string slug, string region)
     {
-        var variables = new { slug, objectType = "Game", region, state = "Published" };
-        var data = Call<IgnGetGameResultData>("ObjectSelectByTypeAndSlug", variables, "b9c48f45a7390ecd157229419dc9a2acb48de90c0f255b667076befb38338de6");
+        // The old IGN persisted query references the removed hrefLangs field.
+        // Request only metadata that Osiris consumes rather than a website query.
+        const string query = "query OsirisGame($slug:String!,$objectType:ObjectType!,$state:State){objectSelectByTypeAndSlug(slug:$slug,type:$objectType,state:$state){id slug metadata{names{name short alt} descriptions{long short}} primaryImage{url} genres{name} features{name} franchises{name} producers{name} publishers{name} objectRegions{region ageRating{name ageRatingType} releases{date platformAttributes{name}}} primaryReview{score}}}";
+        var variables = new { slug, objectType = "Game", state = "Published" };
+        var data = Call<IgnGetGameResultData>("OsirisGame", variables, null, query);
 
         return data?.ObjectSelectByTypeAndSlug;
     }
@@ -36,7 +39,7 @@ public class IgnApiClient(IWebDownloader downloader)
         var variables = new { slug, objectType = "Game", count = 10 };
         var data = Call<IgnGetImagesResultData>("ObjectImageGallery", variables, "06204b0f0871f8382e3adab7d1c59399e6c17ac94bff575c20a12ebf9d880b86");
 
-        return data?.ObjectSelectByTypeAndSlug.ImageGallery?.Images.Select(i => i.Url);
+        return data?.ObjectSelectByTypeAndSlug?.ImageGallery?.Images?.Where(i => i?.Url != null).Select(i => i.Url);
     }
 
     public UserReviewAnalytics GetUserReviewAnalytics(string objectId)
@@ -47,12 +50,13 @@ public class IgnApiClient(IWebDownloader downloader)
         return data?.UserReviewAnalytics;
     }
 
-    private T Call<T>(string operationName, object variables, string hash) where T: class
+    private T Call<T>(string operationName, object variables, string hash, string query = null) where T: class
     {
         var extensions = new { persistedQuery = new { version = 1, sha256Hash = hash } };
         var variablesParameter = ToQueryStringParameter(variables);
         var extensionsParameter = ToQueryStringParameter(extensions);
-        string url = $"https://mollusk.apis.ign.com/graphql?operationName={operationName}&variables={variablesParameter}&extensions={extensionsParameter}";
+        string url = $"https://mollusk.apis.ign.com/graphql?operationName={operationName}&variables={variablesParameter}" +
+            (query == null ? "&extensions=" + extensionsParameter : "&query=" + Uri.EscapeDataString(query));
 
         void HeaderSetter(HttpRequestHeaders headers)
         {
@@ -69,7 +73,7 @@ public class IgnApiClient(IWebDownloader downloader)
         }
 
         var root = JsonConvert.DeserializeObject<IgnResponseRoot<T>>(response.ResponseContent);
-        if (root != null && root.Errors.Any())
+        if (root?.Errors?.Any() == true)
         {
             foreach (var error in root.Errors)
             {

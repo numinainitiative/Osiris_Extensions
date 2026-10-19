@@ -311,6 +311,35 @@ namespace Osiris.Extensions.HowLongToBeat
             }
         }
 
+        internal static void DrawLegendSample(
+            DrawingContext drawingContext,
+            Rect bounds,
+            HowLongToBeatLegendKind kind)
+        {
+            if (bounds.Width <= 0 || bounds.Height <= 0) return;
+            if (kind == HowLongToBeatLegendKind.TimePlayed)
+            {
+                drawingContext.DrawRectangle(PlayedBrush, null, bounds);
+                return;
+            }
+
+            Brush pattern;
+            switch (kind)
+            {
+                case HowLongToBeatLegendKind.MainStory: pattern = MainStoryPatternBrush; break;
+                case HowLongToBeatLegendKind.MainExtra: pattern = MainExtraPatternBrush; break;
+                case HowLongToBeatLegendKind.Completionist: pattern = CompletionistPatternBrush; break;
+                default: return;
+            }
+
+            // Use the timeline's exact brushes and clipped long-stripe renderer.
+            DrawPatternSegment(drawingContext, new TimelineMarker
+            {
+                SemanticIndex = (int)kind - 1,
+                PatternBrush = pattern
+            }, bounds);
+        }
+
         private static void DrawPatternSegment(
             DrawingContext drawingContext,
             TimelineMarker marker,

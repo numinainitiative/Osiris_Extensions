@@ -1,5 +1,13 @@
 # Steam Metadata
 
+Development fix (2026-10-09): automatic cross-library matching now recognizes
+explicit edition suffixes such as Gold/Deluxe Edition when exactly one Steam
+App ID matches. Remasters, multiplayer entries and ambiguous edition candidates
+are not merged. This fixes Xbox's Call of Duty: Advanced Warfare matching Steam's
+Gold Edition (209650), which manual selection could resolve but background
+matching previously skipped. Validate with `dotnet run --project
+validation/Matching.Validation.csproj -c Release` (includes read-only live search).
+
 - Identity: `UniversalSteamMetadata_f2db8fb1-4981-4dc4-b087-05c782215b72`
 - Installed version: `1.0`
 - Status: editable Osiris source recovered; upstream provenance and MIT license

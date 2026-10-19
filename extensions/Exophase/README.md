@@ -61,6 +61,26 @@ and does not replace, delete, or reduce native library data.
 Credentials are entered only on Exophase's own sign-in page. The extension
 does not read or store the user's password.
 
+## Development navigation fix (unreleased)
+
+Game titles on the global page use the same Details navigation sequence as
+Home and Library, including a selection refresh after native view rebinding.
+The owning window is captured before leaving the extension page so the refresh
+survives page detachment. Back retains the originating extension page, and a
+pending refresh cannot override a newer navigation. The SDK fallback remains
+available when the Osiris theme navigation bridge is absent.
+
+See the shared [navigation regression checks](../../validation/ExtensionGameNavigation/README.md).
+
+The bottom summary uses extension-independent labels: **Games with Data**,
+**Games without Data**, and **Games manually disabled**. The existing trophy
+progress legend and library-wide counter behavior are unchanged.
+
+Completed trophy counts/icons, the completed dashed outline and its legend use
+the rarest unlocked trophy's purple border accent (`#9874C2`). Platform playtime
+percentages remain neutral grey regardless of trophy completion: those values
+describe the distribution of playtime, not achievement progress.
+
 ## First synchronization
 
 1. Enable account connection and sign in to Exophase.

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Windows.Media.Imaging;
 
@@ -69,6 +70,14 @@ namespace Osiris.Extensions.ScreenshotsGallery
         }
 
         private static string Stamp(FileInfo file) => file.Length + ":" + file.LastWriteTimeUtc.Ticks;
+        // Explorer may reset creation on a copy; retain the older preserved timestamp.
+        internal static DateTime CaptureTimeUtc(FileInfo file) =>
+            file.CreationTimeUtc < file.LastWriteTimeUtc ? file.CreationTimeUtc : file.LastWriteTimeUtc;
+        private static string Hash(Stream stream)
+        {
+            using (var algorithm = SHA256.Create())
+                return BitConverter.ToString(algorithm.ComputeHash(stream)).Replace("-", "");
+        }
 
         private void Snapshot()
         {
@@ -108,21 +117,32 @@ namespace Osiris.Extensions.ScreenshotsGallery
                         }
                         try
                         {
-                            using (var input = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.Read))
+                            using (var input = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete))
                             {
                                 // Validate a complete image; partial Windows writes are retried.
                                 var decoder = BitmapDecoder.Create(input, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
                                 if (decoder.Frames.Count == 0) continue;
                                 input.Position = 0;
+                                var hash = Hash(input);
+                                input.Position = 0;
                                 var folder = GameFolder(profile, games.Single());
                                 Directory.CreateDirectory(folder);
+                                // Stable identity avoids duplicate copies if source deletion must retry.
                                 var destination = Path.Combine(folder, "Screenshot-" +
-                                    file.LastWriteTimeUtc.ToString("yyyyMMdd-HHmmssfff") + "-" + Guid.NewGuid().ToString("N") + ".png");
+                                    CaptureTimeUtc(file).ToString("yyyyMMdd-HHmmssfff") + "-" + hash.Substring(0, 32) + ".png");
+                                if (!File.Exists(destination))
                                 using (var output = new FileStream(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None))
                                 {
                                     try { input.CopyTo(output); }
                                     catch { output.Dispose(); File.Delete(destination); throw; }
                                 }
+                                using (var savedImage = File.OpenRead(destination))
+                                    if (Hash(savedImage) != hash) throw new IOException("Screenshot destination verification failed; original retained.");
+                                File.SetCreationTimeUtc(destination, file.CreationTimeUtc);
+                                File.SetLastWriteTimeUtc(destination, file.LastWriteTimeUtc);
+                                // Source writers remain excluded by the open read handle. Never delete
+                                // before the complete destination is closed and byte-verified.
+                                File.Delete(file.FullName);
                                 known[file.FullName] = stamp;
                                 pending.Remove(file.FullName);
                             }

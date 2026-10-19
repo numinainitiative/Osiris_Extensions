@@ -41,7 +41,6 @@ namespace Osiris.Extensions.Stats
         private readonly StatsSessionLedger sessionLedger;
         private readonly FrameworkElement fixedHeader;
         private readonly string layoutPath;
-        private readonly string weeklyTrophyPath;
         private readonly List<FrameworkElement> layoutItems = new List<FrameworkElement>();
         private readonly List<Canvas> layoutCanvases = new List<Canvas>();
         private readonly Dictionary<FrameworkElement, Canvas> layoutCanvasByItem =
@@ -82,11 +81,6 @@ namespace Osiris.Extensions.Stats
                 "Settings",
                 "Osiris",
                 "stats-layout.json");
-            weeklyTrophyPath = Path.Combine(
-                api.Paths.ConfigurationPath,
-                "Settings",
-                "Osiris",
-                "stats-weekly-trophies.json");
             InitializeLayoutEditor();
             fixedHeader = CreateNativeTopPanel() ?? CreateFallbackHeader();
             fixedHeader.MinHeight = FixedHeaderHeight;
@@ -947,6 +941,10 @@ namespace Osiris.Extensions.Stats
             var sessions = sessionLedger.Snapshot(visibleGameIds);
             var exophase = ExophaseStatsBridge.TryCreate();
             var howLongToBeat = HowLongToBeatStatsBridge.TryCreate();
+            var trophyStats = StatsTrophiesSnapshot.Read(api, visibleGames);
+            WeeklyTrophiesEarnedCard.Visibility = TrophiesEarnedCard.Visibility =
+                trophyStats.Available ? Visibility.Visible : Visibility.Collapsed;
+            WeeklyRecentTrophies.ItemsSource = trophyStats.Recent;
             SetExtensionSectionAvailability(
                 HowLongToBeatStatsHeader,
                 HowLongToBeatStatsContent,
@@ -988,10 +986,8 @@ namespace Osiris.Extensions.Stats
                         game.InstallSize.Value);
                 }
 
-                trophiesEarned = SaturatingAdd(
-                    trophiesEarned,
-                    exophase?.GetEarnedTrophies(game) ?? 0);
             }
+            trophiesEarned = trophyStats.Total;
 
             OwnedGamesValue.Text = visibleGames.Count.ToString("N0", CultureInfo.CurrentCulture);
             PlayedGamesValue.Text = playedGames.ToString("N0", CultureInfo.CurrentCulture);
@@ -1031,9 +1027,7 @@ namespace Osiris.Extensions.Stats
             RefreshWeeklyStats(
                 visibleGames,
                 visibleGameIds,
-                sessions,
-                trophiesEarned,
-                exophase != null);
+                sessions);
 
             var releaseDatedGames = visibleGames
                 .Where(game => game.ReleaseDate.HasValue && game.ReleaseDate.Value.Date.Year > 1)
@@ -1380,130 +1374,29 @@ namespace Osiris.Extensions.Stats
         private void RefreshWeeklyStats(
             IReadOnlyCollection<Game> visibleGames,
             ISet<Guid> visibleGameIds,
-            IReadOnlyList<StatsSessionRecord> sessions,
-            long totalTrophies,
-            bool hasExophase)
+            IReadOnlyList<StatsSessionRecord> sessions)
         {
-            var now = DateTime.Now;
-            var monday = now.Date.AddDays(-((int)now.DayOfWeek + 6) % 7);
-            var weeklySecondsByGame = ReadHomeWeeklyPlaytime(monday, visibleGameIds);
-            if (weeklySecondsByGame.Count == 0)
+            // Home and Stats render the same provider contract, not separate calculations.
+            var snapshot = new StatsHomeWeeklyProvider(api, sessionLedger).BuildSnapshot(DateTime.Now);
+            var metrics = snapshot.Metrics.ToDictionary(metric => metric.Key);
+            WeeklyTimePlayedValue.Text = metrics["TimePlayed"].Value;
+            WeeklyFavoriteTimeValue.Text = metrics["FavoriteTime"].Value;
+            WeeklyAverageSessionValue.Text = metrics["AverageSession"].Value;
+            var trophyMetric = metrics["TrophiesEarned"];
+            WeeklyTrophiesEarnedCard.Visibility = trophyMetric.Available ? Visibility.Visible : Visibility.Collapsed;
+            WeeklyRecentTrophies.ItemsSource = trophyMetric.Trophies;
+            var bars = metrics["TimePlayed"].Bars;
+            var peak = Math.Max(1UL, bars.Select(bar => bar.Seconds).DefaultIfEmpty(0UL).Max());
+            WeeklyPlaytimeBars.ItemsSource = bars.Select(bar => new WeeklyPlaytimeBar
             {
-                weeklySecondsByGame = sessions
-                    .Where(session =>
-                    {
-                        var ended = session.EndedUtc.ToLocalTime();
-                        return ended.Date >= monday && ended <= now;
-                    })
-                    .GroupBy(session => session.GameId)
-                    .ToDictionary(
-                        group => group.Key,
-                        group => group.Aggregate(
-                            0UL,
-                            (sum, session) => SaturatingAdd(sum, session.Seconds)));
-            }
-
-            var dailySeconds = new ulong[7];
-            var homeEntries = ReadHomePlaytimeEntries();
-            foreach (var entry in homeEntries.Where(entry =>
-                         visibleGameIds.Contains(entry.GameId) &&
-                         entry.Day >= monday &&
-                         entry.Day < monday.AddDays(7)))
-            {
-                var index = (entry.Day - monday).Days;
-                dailySeconds[index] = SaturatingAdd(dailySeconds[index], entry.Seconds);
-            }
-
-            if (dailySeconds.All(value => value == 0UL))
-            {
-                foreach (var session in sessions)
-                {
-                    var ended = session.EndedUtc.ToLocalTime();
-                    var index = (ended.Date - monday).Days;
-                    if (index >= 0 && index < dailySeconds.Length)
-                    {
-                        dailySeconds[index] = SaturatingAdd(dailySeconds[index], session.Seconds);
-                    }
-                }
-            }
-
-            var weeklyTotal = dailySeconds.Aggregate(0UL, SaturatingAdd);
-            var peak = Math.Max(1UL, dailySeconds.Max());
-            WeeklyTimePlayedValue.Text = FormatWeeklyHours(weeklyTotal);
-            WeeklyPlaytimeBars.ItemsSource = Enumerable.Range(0, 7)
-                .Select(index =>
-                {
-                    var day = monday.AddDays(index);
-                    return new WeeklyPlaytimeBar
-                    {
-                        Day = day.ToString("ddd", CultureInfo.CurrentCulture).Substring(0, 1),
-                        Duration = day.ToString("dddd", CultureInfo.CurrentCulture) + ": " +
-                            FormatPlaytime(dailySeconds[index]),
-                        Height = dailySeconds[index] == 0UL
-                            ? 4d
-                            : Math.Max(7d, dailySeconds[index] / (double)peak * 53d),
-                        Fill = new SolidColorBrush(day.Date == now.Date
-                            ? Color.FromRgb(0x98, 0x9B, 0xA1)
-                            : dailySeconds[index] == 0UL
-                                ? Color.FromRgb(0x4B, 0x4D, 0x50)
-                                : Color.FromRgb(0xEC, 0xEE, 0xF1))
-                    };
-                })
-                .ToList();
-
-            WeeklyNewGamesValue.Text = visibleGames.Count(game =>
-                    game.Added.HasValue &&
-                    game.Added.Value.ToLocalTime().Date >= monday &&
-                    game.Added.Value.ToLocalTime() <= now)
-                .ToString("N0", CultureInfo.CurrentCulture);
-
-            var weeklySessions = sessions
-                .Where(session =>
-                {
-                    var ended = session.EndedUtc.ToLocalTime();
-                    return ended.Date >= monday && ended <= now;
-                })
-                .ToList();
-            var weeklyFavoriteHour = weeklySessions.Count > 0
-                ? GetFavoriteHour(Enumerable.Empty<Game>(), weeklySessions)
-                : GetFavoriteHour(
-                    visibleGames.Where(game =>
-                        game.LastActivity.HasValue &&
-                        game.LastActivity.Value.ToLocalTime().Date >= monday &&
-                        game.LastActivity.Value.ToLocalTime() <= now),
-                    new List<StatsSessionRecord>());
-            WeeklyFavoriteTimeValue.Text = FormatFavoriteHour(weeklyFavoriteHour);
-            WeeklyAverageSessionValue.Text = weeklySessions.Count == 0
-                ? "—"
-                : FormatPlaytime(
-                    weeklySessions.Aggregate(
-                        0UL,
-                        (sum, session) => SaturatingAdd(sum, session.Seconds)) /
-                    (ulong)weeklySessions.Count);
-
-            WeeklyTrophiesEarnedValue.Text = hasExophase
-                ? GetWeeklyTrophyDelta(monday, totalTrophies)
-                    .ToString("N0", CultureInfo.CurrentCulture)
-                : "0";
-
-            var gameById = visibleGames.ToDictionary(game => game.Id);
-            var weeklyMostPlayed = weeklySecondsByGame
-                .Where(pair => pair.Value > 0UL && gameById.ContainsKey(pair.Key))
-                .OrderByDescending(pair => pair.Value)
-                .ThenBy(pair => GetGameName(gameById[pair.Key]), StringComparer.CurrentCultureIgnoreCase)
-                .FirstOrDefault();
-            if (weeklyMostPlayed.Value > 0UL)
-            {
-                SetGameHighlight(
-                    WeeklyMostPlayedGameValue,
-                    gameById[weeklyMostPlayed.Key],
-                    null,
-                    FormatPlaytime(weeklyMostPlayed.Value));
-            }
-            else
-            {
-                SetGameHighlight(WeeklyMostPlayedGameValue, null);
-            }
+                Day = bar.Day, Duration = bar.Duration,
+                Height = bar.Seconds == 0UL ? 4d : Math.Max(7d, bar.Seconds / (double)peak * 53d),
+                Fill = new SolidColorBrush(bar.IsToday ? Color.FromRgb(0x98, 0x9B, 0xA1)
+                    : bar.Seconds == 0UL ? Color.FromRgb(0x4B, 0x4D, 0x50) : Color.FromRgb(0xEC, 0xEE, 0xF1))
+            }).ToList();
+            var mostPlayed = metrics["MostPlayedGame"];
+            SetGameHighlight(WeeklyMostPlayedGameValue,
+                visibleGames.FirstOrDefault(game => game.Id == mostPlayed.GameId), null, mostPlayed.Detail);
         }
 
         private Dictionary<Guid, ulong> ReadHomeWeeklyPlaytime(
@@ -1544,37 +1437,6 @@ namespace Osiris.Extensions.Stats
             {
                 Logger.Warn(exception, "Osiris Home weekly playtime could not be read by Stats.");
                 return new List<HomePlaytimeEntry>();
-            }
-        }
-
-        private int GetWeeklyTrophyDelta(DateTime monday, long currentTotal)
-        {
-            try
-            {
-                WeeklyTrophySnapshot snapshot = null;
-                if (File.Exists(weeklyTrophyPath))
-                {
-                    snapshot = Serialization.FromJsonFile<WeeklyTrophySnapshot>(weeklyTrophyPath);
-                }
-
-                if (snapshot == null || snapshot.WeekStart.Date != monday.Date)
-                {
-                    snapshot = new WeeklyTrophySnapshot
-                    {
-                        WeekStart = monday.Date,
-                        Baseline = Math.Max(0L, currentTotal)
-                    };
-                }
-
-                Directory.CreateDirectory(Path.GetDirectoryName(weeklyTrophyPath));
-                File.WriteAllText(weeklyTrophyPath, Serialization.ToJson(snapshot));
-                var earned = Math.Max(0L, currentTotal - snapshot.Baseline);
-                return earned > int.MaxValue ? int.MaxValue : (int)earned;
-            }
-            catch (Exception exception)
-            {
-                Logger.Warn(exception, "The Stats weekly trophy baseline could not be read or saved.");
-                return 0;
             }
         }
 
@@ -2133,13 +1995,6 @@ namespace Osiris.Extensions.Stats
             public DateTime Day { get; set; }
 
             public ulong Seconds { get; set; }
-        }
-
-        private sealed class WeeklyTrophySnapshot
-        {
-            public DateTime WeekStart { get; set; }
-
-            public long Baseline { get; set; }
         }
 
         private sealed class CollectionHighlight
