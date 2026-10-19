@@ -52,7 +52,7 @@ Before publishing an extension:
    accessible.
 
 Published versions are monotonic. Current releases include Game Gallery
-`2.0.4`, Steam Library `1.0.3`, Stats `0.1.3`, and Screenshots Gallery `0.1.0`;
+`2.0.5`, Steam Library `1.0.3`, Stats `0.1.4`, and Screenshots Gallery `0.1.1`;
 resetting existing extension
 versions would break update ordering for installed copies.
 
