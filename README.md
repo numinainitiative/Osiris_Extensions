@@ -39,6 +39,10 @@ are not included. See `extensions/Trophies/README.md` for configuration and limi
 
 ## Coordinated October 2026 update
 
+Osiris Beta 0.0.53 and Fun Games 0.3.2 are published (22 October). This adds
+Roulette and its saved definitions/import/export, plus host font fixes and
+Home/Game Details layout polish. Other extension packages remain unchanged.
+
 Osiris Beta 0.0.52 accompanies Game Gallery 2.0.5, Exophase 0.2.8,
 HowLongToBeat 1.2.5, Stats 0.1.4, Screenshots Gallery 0.1.1, Trophies 0.1.1,
 IGN Metadata 1.0.2 and Steam Metadata 1.0.1. See `docs/releases/` for individual

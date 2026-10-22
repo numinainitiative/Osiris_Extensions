@@ -36,7 +36,8 @@ Deploy only the package program files to Development Data/Extensions/Extras/
 FunGames_9ac287c1-0c9c-4453-b668-9857c4e7d7e6. Preserve all existing Data.
 Restart Development via its root Osiris.exe wrapper; do not launch the engine
 directly or touch the personal installation. No public catalog/release promotion
-is authorized by this development task.
+is performed without an explicit release request. Version 0.3.2 was published
+with Osiris Beta 0.0.53 on 22 October 2026 after clean/upgrade qualification.
 
 Validation: build `validation/Osiris.FunGames.Validation.csproj` in Release,
 then run its executable with `source` and the authoritative MainWindow.xaml
