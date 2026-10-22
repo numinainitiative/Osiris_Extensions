@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+  <PropertyGroup>
+    <AssemblyName>Osiris.FunGames</AssemblyName>
+    <RootNamespace>Osiris.Extensions.FunGames</RootNamespace>
+    <TargetFramework>net462</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
+    <LangVersion>latest</LangVersion>
+    <Version>0.3.2</Version>
+    <Company>Numina Initiative</Company>
+    <Description>A home for small games in Osiris.</Description>
+    <Copyright>Copyright © Numina Initiative 2026</Copyright>
+    <OsirisDevelopmentRoot Condition="'$(OsirisDevelopmentRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\..\Programming\Development\Osiris</OsirisDevelopmentRoot>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugSymbols>false</DebugSymbols><DebugType>None</DebugType>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="osiris-mark.png" />
+    <Resource Include="osiris-mark.png" />
+    <None Update="extension.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="icon.png" CopyToOutputDirectory="PreserveNewest" />
+    <Reference Include="Playnite.SDK">
+      <HintPath>$(OsirisDevelopmentRoot)\App\Playnite.SDK.dll</HintPath><Private>false</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json"><HintPath>$(OsirisDevelopmentRoot)\App\Newtonsoft.Json.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>

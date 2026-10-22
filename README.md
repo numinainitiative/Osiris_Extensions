@@ -24,6 +24,13 @@ are preserved outside Git and are not treated as editable source. Compiled
 
 HowLongToBeat is maintained as an original, clean-room Osiris extension.
 
+Fun Games 0.3.2 is an original MIT-licensed extension in
+`extensions/FunGames`. Its main page contains a portrait Roulette card with a
+game-hero wheel. Play opens a working roulette with eight random library games
+and a builder for saved named roulettes and custom options/descriptions.
+Update to Osiris Beta 0.0.53 before installing it for nested-page navigation.
+Manage Roulettes supports portable import/export alongside Add/Edit/Delete.
+
 Trophies 0.1.0 is an original MIT-licensed extension in `extensions/Trophies`,
 requiring Osiris Beta 0.0.51 for Game Details and Edit Game integration. It imports
 Steam catalogues, synchronises native Steam/Xbox unlocks and offers manual local

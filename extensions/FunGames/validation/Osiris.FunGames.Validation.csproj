@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net462</TargetFramework>
+    <LangVersion>latest</LangVersion><UseWPF>true</UseWPF>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\source\Osiris.FunGames.csproj" />
+    <Reference Include="Playnite.SDK">
+      <HintPath>..\..\..\..\..\Programming\Development\Osiris\App\Playnite.SDK.dll</HintPath><Private>true</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json"><HintPath>..\..\..\..\..\Programming\Development\Osiris\App\Newtonsoft.Json.dll</HintPath><Private>true</Private></Reference>
+  </ItemGroup>
+</Project>

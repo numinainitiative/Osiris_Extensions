@@ -3,6 +3,24 @@
   "enabled": true,
   "extensions": [
     {
+      "id": "FunGames_9ac287c1-0c9c-4453-b668-9857c4e7d7e6",
+      "name": "Fun Games",
+      "description": "Spin a game roulette or build and save your own named roulettes with custom options.",
+      "author": "Osiris",
+      "category": "Extras",
+      "tags": ["Extras"],
+      "version": "0.3.2",
+      "distribution": "release-candidate",
+      "installFolder": "Extras\\FunGames_9ac287c1-0c9c-4453-b668-9857c4e7d7e6",
+      "releaseDate": "2026-10-22T00:00:00+02:00",
+      "releaseTag": "fun-games-v0.3.2",
+      "packageUrl": "https://github.com/numinainitiative/Osiris_Extensions/releases/download/fun-games-v0.3.2/FunGames_0.3.2.pext",
+      "sha256": "3fa7a05762a4eccb103a7012466daa099cf6a7eee53a028cf97134a3ee79ef37",
+      "size": 52280,
+      "iconUrl": "https://raw.githubusercontent.com/numinainitiative/Osiris_Extensions/main/catalog/icons/fun-games.png",
+      "ownership": "original-clean-room"
+    },
+    {
       "id": "GameGallery_8e77fe31-5e62-41e2-8fa2-64844cfd5b6b",
       "name": "Game Gallery",
       "description": "Browse screenshots and artwork for games in your library.",
