@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -17,7 +17,13 @@ namespace Osiris.Extensions.Trophies
         public static bool IsLocal(Game game) => game != null && game.PluginId == Guid.Empty;
         public static Catalogue ForDisplay(Game game, Catalogue value)
         {
-            if (value == null || IsLocal(game)) return value;
+            if (value == null) return value;
+            if (value.SharedSourcePluginId.HasValue && game != null)
+            {
+                game = game.GetCopy();
+                game.PluginId = value.SharedSourcePluginId.Value;
+            }
+            if (IsLocal(game)) return value;
             foreach (var trophy in value.Trophies)
             {
                 trophy.UnlockedUtc = value.NativeProvider == game.PluginId.ToString("D") ? trophy.NativeUnlockedUtc : null;

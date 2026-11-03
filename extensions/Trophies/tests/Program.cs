@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -224,6 +224,27 @@ internal static class Program
                 Reject(() => service.Import(game, 1, "", CancellationToken.None).GetAwaiter().GetResult(), "missing API key");
                 var cancel = new CancellationToken(true);
                 Reject(() => service.Import(game, 1, "fixture-key", cancel).GetAwaiter().GetResult(), "cancel import");
+                var sibling = Guid.NewGuid(); var sharedOwner = Guid.NewGuid();
+                service.Save(sharedOwner, result);
+                var sharedPath = Path.Combine(root,"catalogues",sharedOwner+".json");
+                var resolver = typeof(CatalogueService).GetProperty("ResolveOwner", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                resolver.SetValue(service, new Func<Guid, Guid>(id => id == sibling ? sharedOwner : id));
+                Check(service.Load(sibling).AppId == service.Load(sharedOwner).AppId, "linked edition reads the same catalogue");
+                var shared = service.Load(sibling);
+                shared.Trophies[0].UnlockedUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+                service.Save(sibling, shared);
+                Check(service.Load(sharedOwner).Trophies[0].UnlockedUtc.HasValue && !File.Exists(Path.Combine(root,"catalogues",sibling+".json")),
+                    "linked edition writes the shared catalogue instead of creating a divergent copy");
+                Check((DateTime)typeof(CatalogueService).GetMethod("Revision", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(service, new object[] { sibling }) == File.GetLastWriteTimeUtc(sharedPath),
+                    "linked card refresh observes canonical catalogue revision");
+                var snapshot = CatalogueService.Parse(Fixture, 292030);
+                TrophySources.ApplySteam("{\"playerstats\":{\"success\":true,\"achievements\":[{\"apiname\":\"A\",\"achieved\":1,\"unlocktime\":1700000000},{\"apiname\":\"SECRET\",\"achieved\":0,\"unlocktime\":0}]}}", snapshot, 292030, "76561198000000000");
+                snapshot.SharedSourcePluginId = TrophySources.Steam;
+                TrophySources.ForDisplay(new Playnite.SDK.Models.Game(), snapshot);
+                Check(snapshot.Trophies[0].UnlockedUtc.HasValue && snapshot.Trophies[0].NativePlatform == "Steam",
+                    "unlinked local snapshot keeps explicitly shared native progress and provenance");
+                resolver.SetValue(service, new Func<Guid, Guid>(id => id));
+                Check(service.Load(sibling) == null, "independent storage resumes when link is removed");
                 Check(!Directory.GetFiles(root, "*.tmp", SearchOption.AllDirectories).Any(), "no leftover temp files");
             }
             // Parse the real compiled view dictionaries without reading any profile.

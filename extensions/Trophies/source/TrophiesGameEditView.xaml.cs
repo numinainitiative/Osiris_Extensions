@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -15,13 +15,17 @@ namespace Osiris.Extensions.Trophies
   private Catalogue staged;
   private CancellationTokenSource pending;
   private int generation;
-  internal TrophiesGameEditView(TrophiesPlugin plugin,Game game)
+  private readonly bool sharingPreview;
+  internal TrophiesGameEditView(TrophiesPlugin plugin, Game game) : this(plugin, game, game.Id, false) { }
+  internal TrophiesGameEditView(TrophiesPlugin plugin,Game game, Guid target, bool preview)
   {
-   this.plugin=plugin; this.game=game; gameId=game.Id; InitializeComponent();
-   var value=plugin.Catalogues.Load(gameId);
+   this.plugin=plugin; this.game=game; gameId=target; sharingPreview=preview; InitializeComponent();
+   var value=plugin.Catalogues.Load(game.Id);
    AppIdBox.Text=value?.AppId.ToString() ?? TrophiesViewControl.GuessSteamId(game);
    StatusText.Text=value==null ? "No catalogue imported yet." : value.Trophies.Count+" achievements in the catalogue.";
    SyncHint.Text=TrophySources.IsLocal(game) ? "Uses the edition already saved in Exophase. Sync updates unlocked trophies immediately." : "Sync updates unlocked trophies from this game's connected library.";
+   if (preview && value != null) { staged=value; staged.SharedSourcePluginId=staged.SharedSourcePluginId ?? game.PluginId; }
+   if (preview) { SyncButton.IsEnabled=false; SyncStatus.Text="Save the game to apply page sharing before syncing."; }
    Unloaded+=(s,e)=> { generation++; pending?.Cancel(); SetBusy(false); };
   }
   public void SaveForOsiris(Guid id)
@@ -30,7 +34,7 @@ namespace Osiris.Extensions.Trophies
    generation++; pending?.Cancel();
    if (staged!=null) { plugin.Catalogues.Save(gameId,staged); staged=null; }
   }
-  private void SetBusy(bool busy) { ImportButton.IsEnabled=!busy; SyncButton.IsEnabled=!busy; }
+  private void SetBusy(bool busy) { ImportButton.IsEnabled=!busy; SyncButton.IsEnabled=!busy && !sharingPreview; }
   private async void ImportClick(object sender,RoutedEventArgs e)
   {
    var request=++generation; pending?.Cancel();
@@ -53,6 +57,7 @@ namespace Osiris.Extensions.Trophies
    var operation=new CancellationTokenSource(TimeSpan.FromMinutes(3)); pending=operation; SetBusy(true);
    try
    {
+    if (sharingPreview) throw new InvalidDataException("Save the game to apply page sharing first.");
     if (!plugin.Settings.Committed.Enabled) throw new InvalidDataException("Enable Trophies in extension settings first.");
     if (staged!=null || plugin.Catalogues.Load(gameId)==null) throw new InvalidDataException("Save the game's catalogue first, then Sync.");
     SyncStatus.Text="Syncing trophies…";

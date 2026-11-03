@@ -1,7 +1,22 @@
-# Trophies 0.1.1
+﻿# Trophies 0.1.2
 
 Original MIT-licensed Numina Initiative extension. Requires Osiris Beta 0.0.51
 or newer for its Game Details card and Game Edit integration.
+
+## Edition page sharing (0.1.2)
+
+On a host with the edition-sharing bridge, Game Edit's Share page links the
+catalogue, catalogue settings and earned progress between selected editions.
+The bridge is optional; hosts without it retain independent per-game storage.
+Editor, card, revision checks, native/local sync and the Stats snapshot resolve
+the same canonical owner. Previewing a link remains staged and disables Sync
+until the game is saved. Unlink/deletion snapshot handoff is managed by the host;
+its explicit provider provenance preserves earned progress on local snapshots.
+A successful explicit sync returns presentation to that profile's own provider.
+No credentials are stored in this provenance or in catalogue snapshots.
+
+Development validation: 165 checks pass, including canonical read/write/revision,
+independent fallback and detached native-progress presentation. Version 0.1.2 adds optional sharing when running Osiris Beta 0.0.56.
 
 ## Setup
 

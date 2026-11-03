@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -29,6 +29,7 @@ namespace Osiris.Extensions.Trophies
     public sealed class Catalogue
     {
         public uint AppId { get; set; }
+        public Guid? SharedSourcePluginId { get; set; }
         public string GameName { get; set; }
         public DateTime ImportedUtc { get; set; }
         public string ExophasePageUrl { get; set; }
@@ -81,7 +82,8 @@ namespace Osiris.Extensions.Trophies
             if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) || uri.Scheme != "https" || !uri.IsDefaultPort || !string.IsNullOrEmpty(uri.UserInfo)) return null;
             return uri.Host.EndsWith(".steamstatic.com", StringComparison.OrdinalIgnoreCase) || uri.Host == "steamcdn-a.akamaihd.net" ? uri.AbsoluteUri : null;
         }
-        private string PathFor(Guid game) => Path.Combine(root, "catalogues", game.ToString("D") + ".json");
+        internal Func<Guid, Guid> ResolveOwner { get; set; } = id => id;
+        private string PathFor(Guid game) => Path.Combine(root, "catalogues", ResolveOwner(game).ToString("D") + ".json");
         internal DateTime Revision(Guid game) => File.GetLastWriteTimeUtc(PathFor(game));
         public Catalogue Load(Guid game)
         {

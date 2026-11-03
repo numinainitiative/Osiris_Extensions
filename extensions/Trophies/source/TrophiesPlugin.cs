@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -24,6 +24,7 @@ namespace Osiris.Extensions.Trophies
             Settings = new TrophiesSettingsModel(this);
             Catalogues = new CatalogueService(Path.Combine(api.Paths.ExtensionsDataPath, Id.ToString("D")));
             Exophase=new ExophaseSyncService(api);
+            Catalogues.ResolveOwner = ResolveTrophiesOwner;
             AddCustomElementSupport(new AddCustomElementSupportArgs { SourceName = "Trophies", ElementList = new List<string> { "TrophiesViewControl" } });
         }
         public override Control GetGameViewControl(GetGameViewControlArgs args) => args.Name == "TrophiesViewControl" ? new TrophiesViewControl(this) : null;
@@ -40,15 +41,37 @@ namespace Osiris.Extensions.Trophies
         }
         public UserControl GetGameEditControlForOsiris(Guid gameId)
         {
-            var game = PlayniteApi.Database.Games.Get(gameId);
-            return game == null ? null : new TrophiesGameEditView(this, game);
+            return GetEditor(gameId, ResolveTrophiesOwner(gameId), false);
+        }
+        public UserControl GetSharedGameEditControlForOsiris(Guid gameId, Guid sourceId) => GetEditor(gameId, sourceId, true);
+        private UserControl GetEditor(Guid target, Guid source, bool preview)
+        {
+            var game = PlayniteApi.Database.Games.Get(source);
+            return game == null ? null : new TrophiesGameEditView(this, game, target, preview);
+        }
+        internal Guid ResolveTrophiesOwner(Guid id)
+        {
+            var theme = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.GetName().Name == "OsirisTheme");
+            var method = theme?.GetType("OsirisTheme.EditionPageSharing")?.GetMethod("ResolveOwner");
+            return method == null ? id : (Guid)method.Invoke(null, new object[] { id, "Trophies" });
+        }
+        internal Playnite.SDK.Models.Game EffectiveGame(Playnite.SDK.Models.Game game)
+        {
+            if (game == null) return null;
+            var owner = ResolveTrophiesOwner(game.Id);
+            return owner == game.Id ? game : PlayniteApi.Database.Games.Get(owner) ?? game;
         }
         public override UserControl GetSettingsView(bool firstRunSettings) => new TrophiesSettingsView(Settings);
-        internal Catalogue LoadForGame(Playnite.SDK.Models.Game game) => TrophySources.ForDisplay(game,Catalogues.Load(game.Id));
+        internal Catalogue LoadForGame(Playnite.SDK.Models.Game game)
+        {
+            game = EffectiveGame(game);
+            var catalogue = game == null ? null : Catalogues.Load(game.Id);
+            return TrophySources.ForDisplay(game, catalogue);
+        }
         internal async Task SyncGame(Guid gameId, CancellationToken token)
         {
             await syncGate.WaitAsync(token);
-            try { await SyncGameCore(gameId,token); }
+            try { await SyncGameCore(ResolveTrophiesOwner(gameId),token); }
             finally { syncGate.Release(); }
         }
         public override async void OnApplicationStarted(Playnite.SDK.Events.OnApplicationStartedEventArgs args)
@@ -92,6 +115,7 @@ namespace Osiris.Extensions.Trophies
                 var current=PlayniteApi.Database.Games.Get(gameId);
                 var latest=Catalogues.Load(gameId);
                 if (!Settings.Committed.Enabled || current?.PluginId!=source || latest?.AppId!=catalogue.AppId) return;
+                latest.SharedSourcePluginId=null;
                 latest.NativeProvider=catalogue.NativeProvider; latest.NativeAccount=catalogue.NativeAccount;
                 foreach (var trophy in latest.Trophies) trophy.NativeUnlockedUtc=catalogue.Trophies.Find(t=>t.Id==trophy.Id)?.NativeUnlockedUtc;
                 Catalogues.Save(gameId,latest);
@@ -107,6 +131,7 @@ namespace Osiris.Extensions.Trophies
             if (catalogue==null || catalogue.AppId != appId || !Settings.Committed.Enabled) return;
             foreach (var page in result.Pages) ExophasePageParser.Apply(catalogue, page, result.ProfileId, page.GameTitle, true);
             catalogue.ExophasePageUrl="";
+            catalogue.SharedSourcePluginId=null;
             Catalogues.Save(gameId,catalogue);
             Settings.ExophaseStatus=catalogue.Trophies.Count(t=>t.UnlockedUtc.HasValue)+"/"+catalogue.Trophies.Count+" trophies unlocked. " + (result.Warnings?.Count > 0 ? string.Join(" ", result.Warnings) : "Synced from your saved Exophase edition.");
         }

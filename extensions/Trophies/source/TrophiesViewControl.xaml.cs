@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Threading;
@@ -33,7 +33,7 @@ namespace Osiris.Extensions.Trophies
         private async void Synchronise()
         {
             // Local Exophase updates are explicit: use Sync in the game's editor.
-            if (synchronising!=null || game==null || !plugin.Settings.Committed.Enabled || TrophySources.IsLocal(game)) return;
+            if (synchronising!=null || game==null || !plugin.Settings.Committed.Enabled || TrophySources.IsLocal(plugin.EffectiveGame(game))) return;
             if (plugin.Catalogues.Load(game.Id)==null) return;
             if (lastSyncGame==game.Id && DateTime.UtcNow-lastSyncAttempt<(lastSyncSucceeded ? TimeSpan.FromMinutes(10) : TimeSpan.FromSeconds(30))) return;
             var id=game.Id; lastSyncGame=id; lastSyncAttempt=DateTime.UtcNow;
