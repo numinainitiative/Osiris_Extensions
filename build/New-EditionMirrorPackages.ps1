@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$OsirisRepository = (Join-Path $PSScriptRoot '..\..\Osiris_Launcher'))
+param([string]$OsirisRepository = (Join-Path $PSScriptRoot '..\..\Osiris_Launcher'), [string[]]$ExtensionName = @())
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
@@ -13,6 +13,10 @@ if ($LASTEXITCODE) { throw 'Adapter build failed.' }
 $bridge = Join-Path $repo 'shared\EditionMirrorBridge\bin\Release\net462\Osiris.EditionMirrorBridge.dll'
 $adapter = Join-Path $appRepo 'tools\EditionMirrorExtensions\bin\Release\net8.0\EditionMirrorExtensions.dll'
 $specs = Get-Content (Join-Path $repo 'shared\EditionMirrorBridge\releases.json') -Raw | ConvertFrom-Json
+if ($ExtensionName.Count) {
+    foreach ($name in $ExtensionName) { if ($name -notin @($specs.name)) { throw "Unknown extension: $name" } }
+    $specs = @($specs | Where-Object { $_.name -in $ExtensionName })
+}
 foreach ($spec in $specs) {
     $baseline = Join-Path $repo "artifacts\$($spec.name)\$($spec.baselineVersion)\$($spec.name)_$($spec.baselineVersion).pext"
     if (!(Test-Path -LiteralPath $baseline)) {
