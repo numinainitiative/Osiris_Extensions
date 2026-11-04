@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net462</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>Osiris.EditionMirrorBridge</AssemblyName>
+    <DebugType>none</DebugType>
+    <OsirisDevelopmentRoot Condition="'$(OsirisDevelopmentRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\Programming\Development\Osiris</OsirisDevelopmentRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Playnite.SDK"><HintPath>$(OsirisDevelopmentRoot)\App\Playnite.SDK.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>

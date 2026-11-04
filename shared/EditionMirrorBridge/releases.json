@@ -1,0 +1,42 @@
+[
+  {
+    "name": "HowLongToBeat",
+    "page": "HowLongToBeat",
+    "version": "1.2.6",
+    "baselineVersion": "1.2.5",
+    "baselineUrl": "https://github.com/numinainitiative/Osiris_Extensions/releases/download/howlongtobeat-v1.2.5/HowLongToBeat_1.2.5.pext",
+    "baselineSha256": "de646505df932b73a4fd1493d0824fe706dc19870b4ba8354f5fad70677dcbaa"
+  },
+  {
+    "name": "Exophase",
+    "page": "Exophase",
+    "version": "0.2.9",
+    "baselineVersion": "0.2.8",
+    "baselineUrl": "https://github.com/numinainitiative/Osiris_Extensions/releases/download/exophase-v0.2.8/Exophase_0.2.8.pext",
+    "baselineSha256": "e047e94da03d8e1fe701203d0cc1b6d71909bae2ab9bfe7f7257eb4eb0151731"
+  },
+  {
+    "name": "GameGallery",
+    "page": "Gallery",
+    "version": "2.0.6",
+    "baselineVersion": "2.0.5",
+    "baselineUrl": "https://github.com/numinainitiative/Osiris_Extensions/releases/download/game-gallery-v2.0.5/GameGallery_2.0.5.pext",
+    "baselineSha256": "78abbea0de60c3097764379bfb2de8184ca923a54750ff739cb90d485f96b169"
+  },
+  {
+    "name": "ScreenshotsGallery",
+    "page": "Screenshots",
+    "version": "0.1.3",
+    "baselineVersion": "0.1.1",
+    "baselineUrl": "https://github.com/numinainitiative/Osiris_Extensions/releases/download/screenshots-gallery-v0.1.1/ScreenshotsGallery_0.1.1.pext",
+    "baselineSha256": "01263c5ec41956d1d1012b462fd939a26dc464ecd0ed7fb8c14c0bd3fbb1a0ae"
+  },
+  {
+    "name": "Stats",
+    "page": "StatsInsights",
+    "version": "0.1.5",
+    "baselineVersion": "0.1.4",
+    "baselineUrl": "https://github.com/numinainitiative/Osiris_Extensions/releases/download/stats-v0.1.4/Stats_0.1.4.pext",
+    "baselineSha256": "3748c4524cef56bec88d61a88da67159274dd6a0e54c38f611d0fce8f9f8c779"
+  }
+]
